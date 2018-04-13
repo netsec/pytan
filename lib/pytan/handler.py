@@ -158,7 +158,6 @@ class Handler(object):
         """Constructor."""
         super(Handler, self).__init__()
         self.mylog = logging.getLogger("pytan.handler")
-        self.methodlog = logging.getLogger("method_debug")
 
         # update self with all local variables that are not self/kwargs/k/v
         for k, v in locals().iteritems():
@@ -316,7 +315,7 @@ class Handler(object):
         puc_dict = {}
 
         for k, v in vars(self).iteritems():
-            if k in ['mylog', 'methodlog', 'session', 'puc']:
+            if k in ['mylog', 'session', 'puc']:
                 m = "Skipping class variable {} from inclusion in: {}".format
                 self.mylog.debug(m(k, puc))
                 continue
