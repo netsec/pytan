@@ -1,6 +1,0 @@
-<cs><c><wh>3409330187</wh><dn>Computer Name</dn><rt>1</rt></c><c><wh>0</wh><dn>Count</dn><rt>3</rt></c></cs>
-<rs>
-<r><id>779073218</id><cid>0</cid><c><v>c1u14-virtual-machine.(none)</v></c><c><v>1</v></c></r>
-<r><id>2099246284</id><cid>0</cid><c><v>WIN-6U71ED4M23D</v></c><c><v>1</v></c></r>
-<r><id>2447486854</id><cid>0</cid><c><v>TPT1.pytanlab.com</v></c><c><v>1</v></c></r>
-</rs>
