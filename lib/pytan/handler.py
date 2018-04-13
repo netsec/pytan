@@ -160,7 +160,7 @@ class Handler(object):
         self.mylog = logging.getLogger("pytan.handler")
 
         # update self with all local variables that are not self/kwargs/k/v
-        for k, v in locals().iteritems():
+        for k, v in locals().items():
             if k in ['self', 'kwargs', 'k', 'v']:
                 continue
             setattr(self, k, v)
