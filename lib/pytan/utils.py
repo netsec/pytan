@@ -251,7 +251,7 @@ def remove_logging_handler(name='all'):
 def configure_logging_tz(**kwargs):
     """Configure the logging system to use UTC or localtime."""
     gmt_tz = kwargs.get("gmt_tz", True)
-    logging.Formatter.converter = time.gmtime if gmt_tmz else time.localtime
+    logging.Formatter.converter = time.gmtime if gmt_tz else time.localtime
 
 
 def logging_formatter(**kwargs):
@@ -273,7 +273,7 @@ def setup_console_logging(**kwargs):
     ch_name = kwargs.get("log_con_handler_name", "pytan_console")
     ch_output = kwargs.get("log_con_output", sys.stdout)
     ch_level = kwargs.get("log_con-level", logging_level(**kwargs))
-    ch_format = kwargs.get("log_con_format", logging_formatter(**kwargs)))
+    ch_format = kwargs.get("log_con_format", logging_formatter(**kwargs))
     remove_logging_handler(name=ch_name)
     ch = logging.StreamHandler(stream=ch_output)
     ch.set_name(ch_name)
@@ -286,16 +286,16 @@ def setup_console_logging(**kwargs):
         v.addHandler(ch)
 
 
-def setup_file_logging(gmt_tz=True, logfilepath=None):
+# TODO: fix this up more
+def setup_file_logging(gmt_tz=True, logfilepath=None, **kwargs):
     """Create a file logging handler using logging.StreamHandler()."""
     log_file = kwargs.get("log_file", None)
-3
     if log_file:
         fh_name = kwargs.get("log_file_handler_name", "pytan_file")
-        fh_output = kwargs.get("log_file_output", sys.stdout)
+        fh_output = kwargs.get("log_file_output", sys.stdout)  # noqa
         debugformat = kwargs.get("debugformat", False)
-        fh_level = logging.DEBUG if debugformat else logging.INFO
-        fh_format = kwargs.get("log_file_format", logging_formatter(**kwargs)))
+        fh_level = logging.DEBUG if debugformat else logging.INFO  # noqa
+        fh_format = kwargs.get("log_file_format", logging_formatter(**kwargs))  # noqa
         remove_logging_handler(name=fh_name)
 
     if gmt_tz:
@@ -2261,11 +2261,14 @@ def vig_decode(key, string):
     return decoded_string
 
 
-'''--- clean_path ------------------------------------------------------
-    Cleans a given path based on parameters
+# TODO: fix this up more
+def clean_path(path=None, return_absolute_path=True, return_real_path=True,
+               allow_absolute_path=True, allow_symbol_home_dir=True,
+               allow_symbol_parent_dir=True):
+    """Clean a given path based on parameters.
 
-    Parameters
-    ----------
+        Parameters
+        ----------
         path : str
             * default : None
             * direcotry or file path to be sanitized
@@ -2296,34 +2299,31 @@ def vig_decode(key, string):
             * true = allow use of .. to redirect to parent dir
             * false = strip .. from path before expanding
 
-    Returns
-    -------
-        cleaned_path : str
-----------------------------------------------------------------------'''
-def clean_path( path=None, return_absolute_path=True, return_real_path=True
-             , allow_absolute_path=True , allow_symbol_home_dir=True
-             , allow_symbol_parent_dir=True ):
-#
+        Returns
+        -------
+            cleaned_path : str
+    ----------------------------------------------------------------------
+    """
     if (path is None)or (path == ''):
         return path
 
-    cleaned_path = os.path.expandvars( path.strip() )
+    cleaned_path = os.path.expandvars( path.strip() )  # noqa
     if not allow_absolute_path:
-        cleaned_path = re.sub( r'^(\\|\/|[A-z]:[\\\/])?', '', cleaned_path )
+        cleaned_path = re.sub( r'^(\\|\/|[A-z]:[\\\/])?', '', cleaned_path )  # noqa
 
     if not allow_symbol_home_dir:
-        cleaned_path = re.sub( r'\~', '', cleaned_path )
+        cleaned_path = re.sub( r'\~', '', cleaned_path )  # noqa
 
     if not allow_symbol_parent_dir:
-        cleaned_path = re.sub( r'(^|\\|\/)?\.\.[\\\/]', '', cleaned_path )
+        cleaned_path = re.sub( r'(^|\\|\/)?\.\.[\\\/]', '', cleaned_path )  # noqa
 
-    cleaned_path = re.sub( r'([\\\/])\s*[\\\/]+', r'\g<1>', cleaned_path )
-    cleaned_path = re.sub( r'([\\\/]?\.[\\\/])+', '.'+os.path.sep, cleaned_path )
-    cleaned_path = os.path.expanduser( cleaned_path )
+    cleaned_path = re.sub( r'([\\\/])\s*[\\\/]+', r'\g<1>', cleaned_path )  # noqa
+    cleaned_path = re.sub( r'([\\\/]?\.[\\\/])+', '.'+os.path.sep, cleaned_path )  # noqa
+    cleaned_path = os.path.expanduser( cleaned_path )  # noqa
 
     if return_absolute_path:
-        cleaned_path = os.path.normpath( os.path.join( os.getcwd(), cleaned_path) )
+        cleaned_path = os.path.normpath( os.path.join( os.getcwd(), cleaned_path) )  # noqa
 
     if return_real_path:
-        cleaned_path = os.path.realpath( cleaned_path )
+        cleaned_path = os.path.realpath( cleaned_path )  # noqa
     return cleaned_path
