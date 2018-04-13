@@ -1,10 +1,10 @@
-# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
-# ex: set tabstop=4
-# Please do not change the two lines above. See PEP 8, PEP 263.
-'''A python package that makes using the Tanium Server SOAP API easy.'''
+"""A python package that makes using the Tanium Server SOAP API easy."""
+import logging
+import os
+import sys
 
 __title__ = 'PyTan'
-__version__ = '2.2.2'
+__version__ = '2.2.3'
 """
 Version of PyTan
 """
@@ -23,9 +23,6 @@ __copyright__ = 'Copyright 2015 Tanium'
 """
 Copyright for PyTan
 """
-
-import sys
-import os
 
 # disable python from creating .pyc files everywhere
 sys.dont_write_bytecode = True
@@ -60,14 +57,12 @@ from pytan import sessions  # noqa
 from pytan import help  # noqa
 from pytan.handler import Handler  # noqa
 
-
 # Set default logging handler to avoid "No handler found" warnings.
-import logging
 try:  # Python 2.7+
     from logging import NullHandler
 except ImportError:
-    class NullHandler(logging.Handler):
-        def emit(self, record):
+    class NullHandler(logging.Handler):  # noqa
+        def emit(self, record):  # noqa
             pass
 
 logging.getLogger(__name__).addHandler(NullHandler())

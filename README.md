@@ -1,12 +1,15 @@
 <!-- MarkdownTOC -->
 
-- [PyTan](#pytan)
-  - [What is it?](#what-is-it)
-  - [Versions](#versions)
-  - [Documentation Links](#documentation-links)
-  - [Quick Install Instructions](#quick-install-instructions)
-  - [Release strategy](#release-strategy)
-  - [Package Info](#package-info)
+- PyTan
+  - What is it?
+  - Versions
+  - Documentation Links
+  - Quick Install Instructions
+    - Mac OSX
+    - Linux
+    - Windows
+  - Release strategy
+  - Package Info
 
 <!-- /MarkdownTOC -->
 
@@ -17,7 +20,7 @@
 This is a set of packages and scripts that provide a simple way for interfacing with the [Tanium](https://www.tanium.com/) SOAP API using python or the command line.
 
 ## Versions
- * **2.2.2 (Jul 14 2017)** [Release Link](https://github.com/tanium/pytan/releases/tag/2.2.2)
+ * **2.2.3 (Apr 13 2018)** [Release Link](https://github.com/tanium/pytan/releases/tag/2.2.3)
 
 ## Documentation Links
 
@@ -49,7 +52,7 @@ mkdir ~/tanium
 * Extract the PyTan ZIP file you downloaded to ~/tanium:
 ```
 cd ~/tanium
-unzip pytan-2.2.2.zip
+unzip pytan-2.2.3.zip
 ```
 * Verify that your OSX install has Python 2.7.x installed and that your PYTHONPATH points to 2.7.x:
 ```
@@ -66,7 +69,7 @@ mkdir ~/tanium
 * Extract the PyTan ZIP file you downloaded to ~/tanium:
 ```
 cd ~/tanium
-unzip pytan-2.2.2.zip
+unzip pytan-2.2.3.zip
 ```
 * Verify that your linux distribution has Python 2.7.x installed and that your PYTHONPATH points to 2.7.x:
 ```
