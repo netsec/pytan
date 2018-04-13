@@ -42,7 +42,7 @@ class Handler(object):
         * 1 and higher will print more
     logfile : str, optional
         * default: None
-        * path to og file, if 'None', no log file is written
+        * path to log file, if 'None', no log file is written
     debugformat : bool, optional
         * default: False
         * False: use one line logformat
