@@ -1,13 +1,10 @@
 """Collection of classes and methods for polling of actions/questions in :mod:`pytan`."""
-import sys
-
-# disable python from creating .pyc files everywhere
-sys.dont_write_bytecode = True
-
-import os
 import logging
+import os
+# import pprint # NOT USED
+import sys
 import time
-import pprint
+
 from datetime import datetime
 from datetime import timedelta
 
@@ -94,6 +91,7 @@ class QuestionPoller(object):
     """Controls whether a run() loop should stop or not"""
 
     def __init__(self, handler, obj, **kwargs):
+        """Object instantiator."""
         self.setup_logging()
 
         if not isinstance(handler, pytan.handler.Handler):
@@ -120,34 +118,31 @@ class QuestionPoller(object):
         self._post_init(**kwargs)
 
     def setup_logging(self):
-        """Setup loggers for this object"""
-
+        """Setup loggers for this object."""
         self.qualname = "pytan.pollers.{}".format(self.__class__.__name__)
         self.mylog = logging.getLogger(self.qualname)
         self.progresslog = logging.getLogger(self.qualname + ".progress")
         self.resolverlog = logging.getLogger(self.qualname + ".resolver")
 
     def __str__(self):
-
+        """String method for this object."""
         class_name = self.__class__.__name__
         attrs = ", ".join(['{0}: "{1}"'.format(x, getattr(self, x, None)) for x in self.STR_ATTRS])
         ret = "{} {}".format(class_name, attrs)
         return ret
 
     def _post_init(self, **kwargs):
-        """Post init class setup"""
-
+        """Post init class setup."""
         self.override_estimated_total = kwargs.get('override_estimated_total', 0)
         self._derive_expiration(**kwargs)
         self._derive_object_info(**kwargs)
 
     def _refetch_obj(self, **kwargs):
-        """Utility method to re-fetch a object
+        """Utility method to re-fetch a object.
 
         This is used in the case that the obj supplied does not have all the metadata
         available
         """
-
         clean_keys = ['obj']
         clean_kwargs = pytan.utils.clean_kwargs(kwargs=kwargs, keys=clean_keys)
 
@@ -160,7 +155,7 @@ class QuestionPoller(object):
         self.obj = obj
 
     def _derive_attribute(self, attr, fallback='', **kwargs):
-        """Derive an attributes value from self.obj
+        """Derive an attributes value from self.obj.
 
         Will re-fetch self.obj if the attribute is not set
 
@@ -178,7 +173,6 @@ class QuestionPoller(object):
             The value of the attr from self.obj
 
         """
-
         clean_keys = ['obj', 'pytan_help']
         clean_kwargs = pytan.utils.clean_kwargs(kwargs=kwargs, keys=clean_keys)
 
@@ -210,8 +204,7 @@ class QuestionPoller(object):
         return val
 
     def _derive_object_info(self, **kwargs):
-        """Derive self.object_info from self.obj"""
-
+        """Derive self.object_info from self.obj."""
         clean_keys = ['attr', 'fallback']
         clean_kwargs = pytan.utils.clean_kwargs(kwargs=kwargs, keys=clean_keys)
 
@@ -230,11 +223,10 @@ class QuestionPoller(object):
         self.object_info = object_info
 
     def _derive_expiration(self, **kwargs):
-        """Derive the expiration datetime string from a object
+        """Derive the expiration datetime string from a object.
 
         Will generate a datetime string from self.EXPIRY_FALLBACK_SECS if unable to get the expiration from the object (self.obj) itself.
         """
-
         clean_keys = ['attr', 'fallback']
         clean_kwargs = pytan.utils.clean_kwargs(kwargs=kwargs, keys=clean_keys)
 
@@ -243,9 +235,7 @@ class QuestionPoller(object):
         self.expiration = self._derive_attribute(attr=attr_name, fallback=fb, **clean_kwargs)
 
     def run_callback(self, callbacks, callback, pct, **kwargs):
-        """Utility method to find a callback in callbacks dict and run it
-        """
-
+        """Utility method to find a callback in callbacks dict and run it."""
         if not callbacks.get(callback, ''):
             return
 
@@ -272,7 +262,7 @@ class QuestionPoller(object):
         self.complete_pct = val
 
     def get_result_info(self, **kwargs):
-        """Simple utility wrapper around :func:`pytan.handler.Handler.get_result_info`
+        """Simple utility wrapper around :func:`pytan.handler.Handler.get_result_info`.
 
         Parameters
         ----------
@@ -284,7 +274,6 @@ class QuestionPoller(object):
         -------
         result_info : :class:`taniumpy.object_types.result_info.ResultInfo`
         """
-
         # add a retry to re-fetch result info if estimated_total == 0
         gri_retry_count = kwargs.get('gri_retry_count', 10)
 
@@ -314,13 +303,12 @@ class QuestionPoller(object):
         return result_info
 
     def get_result_data(self, **kwargs):
-        """Simple utility wrapper around :func:`pytan.handler.Handler.get_result_data`
+        """Simple utility wrapper around :func:`pytan.handler.Handler.get_result_data`.
 
         Returns
         -------
         result_data : :class:`taniumpy.object_types.result_set.ResultSet`
         """
-
         clean_keys = ['obj']
         clean_kwargs = pytan.utils.clean_kwargs(kwargs=kwargs, keys=clean_keys)
         result_data = self.handler.get_result_data(obj=self.obj, **clean_kwargs)
@@ -352,7 +340,6 @@ class QuestionPoller(object):
             * Polling will be stopped only when one of the callbacks calls the stop() method or the answers are complete.
             * Any callback can call setPercentCompleteThreshold to change what "done" means on the fly
         """
-
         self.start = datetime.utcnow()
         self.expiration_timeout = pytan.utils.timestr_to_datetime(timestr=self.expiration)
 
@@ -370,9 +357,10 @@ class QuestionPoller(object):
         return self.poller_result
 
     def passed_eq_est_total_loop(self, callbacks={}, **kwargs):
-        """Method to poll Result Info for self.obj until the percentage of 'passed' out of 'estimated_total' is greater than or equal to self.complete_pct
-        """
+        """Method to poll Result Info for self.obj.
 
+        Polls until the percentage of 'passed' out of 'estimated_total' is greater than or equal to self.complete_pct
+        """
         # current percentage tracker
         self.pct = None
         # loop counter
@@ -496,6 +484,7 @@ class QuestionPoller(object):
             self.loop_count += 1
 
     def stop(self):
+        """Used to update self._stop to True, which the poller loops watch to know when to stop."""
         self._stop = True
 
 
@@ -543,8 +532,7 @@ class ActionPoller(QuestionPoller):
     """attribute of self.obj that contains the expiration for this object"""
 
     def _post_init(self, **kwargs):
-        """Post init class setup"""
-
+        """Post init class setup."""
         self.override_passed_count = kwargs.get('override_passed_count', 0)
         self._derive_package_spec(**kwargs)
         self._derive_target_group(**kwargs)
@@ -556,8 +544,7 @@ class ActionPoller(QuestionPoller):
         self._derive_object_info(**kwargs)
 
     def _derive_status(self, **kwargs):
-        """Get the status attribute for self.obj"""
-
+        """Get the status attribute for self.obj."""
         clean_keys = ['attr', 'fallback']
         clean_kwargs = pytan.utils.clean_kwargs(kwargs=kwargs, keys=clean_keys)
 
@@ -566,8 +553,7 @@ class ActionPoller(QuestionPoller):
         self.status = self._derive_attribute(attr=attr_name, fallback=fb, **clean_kwargs)
 
     def _derive_stopped_flag(self, **kwargs):
-        """Get the stopped_flag attribute for self.obj"""
-
+        """Get the stopped_flag attribute for self.obj."""
         clean_keys = ['attr', 'fallback']
         clean_kwargs = pytan.utils.clean_kwargs(kwargs=kwargs, keys=clean_keys)
 
@@ -578,8 +564,7 @@ class ActionPoller(QuestionPoller):
         self.stopped_flag = bool(self.stopped_flag)
 
     def _derive_package_spec(self, **kwargs):
-        """Get the package_spec attribute for self.obj, then fetch the full package_spec object"""
-
+        """Get the package_spec attribute for self.obj, then fetch the full package_spec object."""
         clean_keys = ['attr', 'fallback', 'obj']
         clean_kwargs = pytan.utils.clean_kwargs(kwargs=kwargs, keys=clean_keys)
 
@@ -593,8 +578,7 @@ class ActionPoller(QuestionPoller):
         self.package_spec = self.handler._find(obj=self.package_spec, **clean_kwargs)
 
     def _derive_target_group(self, **kwargs):
-        """Get the target_group attribute for self.obj, then fetch the full group object"""
-
+        """Get the target_group attribute for self.obj, then fetch the full group object."""
         clean_keys = ['attr', 'fallback', 'obj']
         clean_kwargs = pytan.utils.clean_kwargs(kwargs=kwargs, keys=clean_keys)
 
@@ -619,16 +603,14 @@ class ActionPoller(QuestionPoller):
                 self.mylog.exception(m(self.id_str, self.target_group))
 
     def _fix_group(self, g, **kwargs):
-        """Sets ID to null on a group object and all of it's sub_groups, needed for 6.5"""
-
+        """Set ID to null on a group object and all of it's sub_groups, needed for 6.5."""
         g.id = None
         if g.sub_groups:
             for x in g.sub_groups:
                 self._fix_group(g=x)
 
     def _derive_verify_enabled(self, **kwargs):
-        """Determine if this action has verification enabled"""
-
+        """Determine if this action has verification enabled."""
         self.verify_enabled = False
         package_spec = getattr(self, 'package_spec', None)
         ps_verify_group_id = getattr(package_spec, 'verify_group_id', None)
@@ -638,7 +620,7 @@ class ActionPoller(QuestionPoller):
             self.verify_enabled = True
 
     def _derive_result_map(self, **kwargs):
-        """Determine what self.result_map should contain for the various statuses an action can have
+        """Determine what self.result_map should contain for the various statuses an action can have.
 
         A package object has to have a verify_group defined on it in order
         for deploy action verification to trigger. That can be only done
@@ -646,7 +628,6 @@ class ActionPoller(QuestionPoller):
 
         If verify_enable is True, then the various result states for an action change
         """
-
         if self.verify_enabled:
             finished = [
                 'Verified.', 'Succeeded.', 'Expired.', 'Stopped.', 'NotSucceeded.', 'Failed.',
@@ -690,8 +671,7 @@ class ActionPoller(QuestionPoller):
         self.resolverlog.debug(m(self.id_str, self.result_map))
 
     def _derive_object_info(self, **kwargs):
-        """Derive self.object_info from self.obj"""
-
+        """Derive self.object_info from self.obj."""
         m = "{}Package: '{}', Target: '{}', Verify: {}, Stopped: {}, Status: {}".format
 
         object_info = m(
@@ -728,7 +708,6 @@ class ActionPoller(QuestionPoller):
             * Polling will be stopped only when one of the callbacks calls the :func:`pytan.poller.QuestionPoller.stop` method or the answers are complete.
             * Any callbacks can call :func:`pytan.poller.QuestionPoller.setPercentCompleteThreshold` to change what "done" means on the fly
         """
-
         self.start = datetime.utcnow()
         self.expiration_timeout = pytan.utils.timestr_to_datetime(timestr=self.expiration)
 
@@ -777,12 +756,13 @@ class ActionPoller(QuestionPoller):
         return self.poller_result
 
     def seen_eq_passed_loop(self, callbacks={}, **kwargs):
-        """Method to poll Result Info for self.obj until the percentage of 'seen_count' out of 'self.passed_count' is greater than or equal to self.complete_pct
+        """Poll Result Info for self.obj.
+
+        Polls until the percentage of 'seen_count' out of 'self.passed_count' is greater than or equal to self.complete_pct.
 
         * seen_count is calculated from an aggregate GetResultData
         * self.passed_count is calculated by the question asked before this method is called. that question has no selects, but has a group that is the same group as the action for this object
         """
-
         # number of systems that have SEEN the action
         self.seen_count = None
         # current percentage tracker
@@ -925,13 +905,15 @@ class ActionPoller(QuestionPoller):
             time.sleep(self.polling_secs)
             self.seen_loop_count += 1
 
-    def finished_eq_passed_loop(self, callbacks={}, **kwargs):
-        """Method to poll Result Info for self.obj until the percentage of 'finished_count' out of 'self.passed_count' is greater than or equal to self.complete_pct
+    # TODO: TOO COMPLEX
+    def finished_eq_passed_loop(self, callbacks={}, **kwargs):  # noqa
+        """Poll Result Info for self.obj.
+
+        Polls until the percentage of 'finished_count' out of 'self.passed_count' is greater than or equal to self.complete_pct.
 
         * finished_count is calculated from a full GetResultData call that is parsed into self.action_result_map
         * self.passed_count is calculated by the question asked before this method is called. that question has no selects, but has a group that is the same group as the action for this object
         """
-
         # number of systems that have FINISHED the action
         self.finished_count = None
         # current percentage tracker
@@ -1116,6 +1098,7 @@ class SSEPoller(QuestionPoller):
         * default: 600
         * timeout in seconds for waiting for status completion, 0 does not time out
     """
+
     STR_ATTRS = [
         'export_id',
         'polling_secs',
@@ -1134,6 +1117,7 @@ class SSEPoller(QuestionPoller):
     """The export_id for this poller"""
 
     def __init__(self, handler, export_id, **kwargs):
+        """Object instantiator."""
         self.setup_logging()
 
         if not isinstance(handler, pytan.handler.Handler):
@@ -1151,16 +1135,14 @@ class SSEPoller(QuestionPoller):
         self._post_init(**kwargs)
 
     def _post_init(self, **kwargs):
-        """Post init class setup"""
-
+        """Post init class setup."""
         pass
 
     def get_sse_status(self, **kwargs):
-        """Function to get the status of a server side export
+        """Function to get the status of a server side export.
 
         Constructs a URL via: export/${export_id}.status and performs an authenticated HTTP get
         """
-
         clean_keys = ['url']
         clean_kwargs = pytan.utils.clean_kwargs(kwargs=kwargs, keys=clean_keys)
 
@@ -1181,11 +1163,10 @@ class SSEPoller(QuestionPoller):
         return ret
 
     def get_sse_data(self, **kwargs):
-        """Function to get the data of a server side export
+        """Function to get the data of a server side export.
 
         Constructs a URL via: export/${export_id}.gz and performs an authenticated HTTP get
         """
-
         clean_keys = ['url']
         clean_kwargs = pytan.utils.clean_kwargs(kwargs=kwargs, keys=clean_keys)
 
@@ -1206,8 +1187,7 @@ class SSEPoller(QuestionPoller):
         return ret
 
     def run(self, **kwargs):
-        """Poll for server side export status"""
-
+        """Poll for server side export status."""
         self.start = datetime.utcnow()
 
         if self.timeout_secs:
