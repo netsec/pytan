@@ -354,7 +354,8 @@ def change_console_format(**kwargs):
 
     for k, v in sorted(get_all_pytan_loggers().iteritems()):
         for handler in v.handlers:
-            if handler.name.startswith("pytan_"):
+            # 2.2.3: fix NoneType in handler.name
+            if handler.name and handler.name.startswith("pytan_"):
                 handler.setFormatter(f)
 
 
