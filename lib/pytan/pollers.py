@@ -96,11 +96,6 @@ class QuestionPoller(object):
     """Controls whether a run() loop should stop or not"""
 
     def __init__(self, handler, obj, **kwargs):
-        self.methodlog = logging.getLogger("method_debug")
-        self.DEBUG_METHOD_LOCALS = kwargs.get('debug_method_locals', False)
-
-        self._debug_locals(sys._getframe().f_code.co_name, locals())
-
         self.setup_logging()
 
         if not isinstance(handler, pytan.handler.Handler):
@@ -517,12 +512,6 @@ class QuestionPoller(object):
 
     def stop(self):
         self._stop = True
-
-    def _debug_locals(self, fname, flocals):
-        """Method to print out locals for a function if self.DEBUG_METHOD_LOCALS is True"""
-        if getattr(self, 'DEBUG_METHOD_LOCALS', False):
-            m = "Local variables for {}.{}:\n{}".format
-            self.methodlog.debug(m(self.__class__.__name__, fname, pprint.pformat(flocals)))
 
 
 class ActionPoller(QuestionPoller):
@@ -1172,11 +1161,6 @@ class SSEPoller(QuestionPoller):
     """The export_id for this poller"""
 
     def __init__(self, handler, export_id, **kwargs):
-        self.methodlog = logging.getLogger("method_debug")
-        self.DEBUG_METHOD_LOCALS = kwargs.get('debug_method_locals', False)
-
-        self._debug_locals(sys._getframe().f_code.co_name, locals())
-
         self.setup_logging()
 
         if not isinstance(handler, pytan.handler.Handler):
