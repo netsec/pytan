@@ -159,29 +159,35 @@ class Handler(object):
         super(Handler, self).__init__()
         self.mylog = logging.getLogger("pytan.handler")
 
+        # store all local variables in a new margs
+        margs = {}
+        margs.update(kwargs)
         # update self with all local variables that are not self/kwargs/k/v
         for k, v in locals().items():
             if k in ['self', 'kwargs', 'k', 'v']:
                 continue
             setattr(self, k, v)
+            margs[k] = v
+
+        pytan.utils.configure_logging_tz(**margs)
 
         # setup the console logging handler
-        pytan.utils.setup_console_logging(gmt_tz=self.gmt_log)
+        pytan.utils.setup_console_logging(**margs)
 
         # setup the file logging handler
-        pytan.utils.setup_file_logging(gmt_tz=self.gmt_log, logfilepath=self.logfile )
+        pytan.utils.setup_file_logging(**margs)
 
         # create all the loggers and set their levels based on loglevel
         pytan.utils.set_log_levels(loglevel=self.loglevel)
 
         # change the format of console logging handler if need be
-        pytan.utils.change_console_format(debug=self.debugformat)
+        pytan.utils.change_console_format(**margs)
 
         # get the default pytan user config file
         puc_default = os.path.expanduser(pytan.constants.PYTAN_USER_CONFIG)
 
         # see if the pytan_user_config file location was overridden
-        puc_kwarg = kwargs.get('pytan_user_config', '')
+        puc_kwarg = kwargs.get("pytan_user_config", "")
 
         self.puc = puc_kwarg or puc_default
         kwargs = self.read_pytan_user_config(kwargs)
