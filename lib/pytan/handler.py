@@ -201,8 +201,6 @@ class Handler(object):
         if debugformat != self.debugformat:
             pytan.utils.change_console_format(debug=self.debugformat)
 
-        self.debug_method_locals = kwargs.get('debug_method_locals', False)
-
         if not self.session_id:
 
             if not self.username:
