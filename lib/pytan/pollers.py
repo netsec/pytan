@@ -1,9 +1,4 @@
-#!/usr/bin/env python
-# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
-# ex: set tabstop=4
-# Please do not change the two lines above. See PEP 8, PEP 263.
-"""Collection of classes and methods for polling of actions/questions in :mod:`pytan`"""
-
+"""Collection of classes and methods for polling of actions/questions in :mod:`pytan`."""
 import sys
 
 # disable python from creating .pyc files everywhere
@@ -22,8 +17,11 @@ parent_dir = os.path.dirname(my_dir)
 path_adds = [parent_dir]
 [sys.path.insert(0, aa) for aa in path_adds if aa not in sys.path]
 
-import taniumpy
-import pytan
+try:
+    import taniumpy
+    import pytan
+except:
+    raise
 
 
 class QuestionPoller(object):
