@@ -1668,10 +1668,12 @@ class Handler(object):
             )
         elif parameters_json:  # From JSON formatted string
             try:
-                json_obj = json.loads( json.dumps(parameters_json) )
+                # TODO: OBJECT NOT IN USE
+                json_obj = json.loads(json.dumps(parameters_json))
                 add_package_obj.parameter_definition = parameters_json
-            except ValueError, e:
-                self.mylog.warning( 'Ignoring Parameter Definition JSON. Invalid Formatted JSON.' )
+            except ValueError as e:
+                m = "Ignoring Parameter Definition JSON. Invalid Formatted JSON. Error: {}"
+                self.mylog.warning(m.format(e))
 
         # FILES
         if file_urls:
