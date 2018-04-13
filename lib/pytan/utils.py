@@ -2,22 +2,19 @@
 # -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
 # ex: set tabstop=4
 # Please do not change the two lines above. See PEP 8, PEP 263.
-"""Collection of classes and methods used throughout :mod:`pytan`"""
-import sys
-
-# disable python from creating .pyc files everywhere
-sys.dont_write_bytecode = True
-
-import os
-import socket
-import time
-import logging
-import json
-import datetime
-import re
-import itertools
+"""Collection of classes and methods used throughout :mod:`pytan`."""
 import base64
-import errno
+import datetime
+# import errno
+import itertools
+import json
+import logging
+import os
+import re
+import socket
+import sys
+import time
+
 from collections import OrderedDict
 
 my_file = os.path.abspath(__file__)
@@ -26,9 +23,12 @@ parent_dir = os.path.dirname(my_dir)
 path_adds = [parent_dir]
 [sys.path.insert(0, aa) for aa in path_adds if aa not in sys.path]
 
-import taniumpy
-import xmltodict
-import pytan
+try:
+    import taniumpy
+    import xmltodict
+    import pytan
+except:
+    raise
 
 __version__ = pytan.__version__
 
@@ -41,62 +41,28 @@ timinglog = logging.getLogger("pytan.handler.timing")
 DEBUG_OUTPUT = False
 
 
-class SplitStreamHandler(logging.Handler):
-    """Custom :class:`logging.Handler` class that sends all messages that are logging.INFO and below to STDOUT, and all messages that are logging.WARNING and above to STDERR
-    """
-
-    def __init__(self):
-        logging.Handler.__init__(self)
-
-    def emit(self, record):
-        try:
-            msg = self.format(record)
-            if record.levelno < logging.WARNING:
-                stream = sys.stdout
-            else:
-                stream = sys.stderr
-            fs = "%s\n"
-            try:
-                is_unicode = isinstance(msg, unicode)
-                if is_unicode and getattr(stream, 'encoding', None):
-                    ufs = u'%s\n'
-                    try:
-                        stream.write(ufs % msg)
-                    except UnicodeEncodeError:
-                        stream.write((ufs % msg).encode(stream.encoding))
-                else:
-                    stream.write(fs % msg)
-            except UnicodeError:
-                stream.write(fs % msg.encode("UTF-8"))
-            self.flush()
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except:
-            self.handleError(record)
-
-
 def is_list(l):
-    """returns True if `l` is a list, False if not"""
+    """Return True if `l` is a list, False if not."""
     return type(l) in [list, tuple]
 
 
 def is_str(l):
-    """returns True if `l` is a string, False if not"""
-    return type(l) in [unicode, str]
+    """Return True if `l` is a string, False if not."""
+    return type(l) in [unicode, str]  # noqa
 
 
 def is_dict(l):
-    """returns True if `l` is a dictionary, False if not"""
+    """Return True if `l` is a dictionary, False if not."""
     return type(l) in [dict, OrderedDict]
 
 
 def is_num(l):
-    """returns True if `l` is a number, False if not"""
-    return type(l) in [float, int, long]
+    """Return True if `l` is a number, False if not."""
+    return type(l) in [float, int, long]  # noqa
 
 
 def jsonify(v, indent=2, sort_keys=True):
-    """Turns python object `v` into a pretty printed JSON string
+    """Turn python object `v` into a pretty printed JSON string.
 
     Parameters
     ----------
@@ -118,7 +84,7 @@ def jsonify(v, indent=2, sort_keys=True):
 
 
 def get_now():
-    """Get current time in human friendly format
+    """Get current time in human friendly format.
 
     Returns
     -------
@@ -129,7 +95,7 @@ def get_now():
 
 
 def human_time(t, tformat='%Y_%m_%d-%H_%M_%S-%Z'):
-    """Get time in human friendly format
+    """Get time in human friendly format.
 
     Parameters
     ----------
@@ -149,7 +115,7 @@ def human_time(t, tformat='%Y_%m_%d-%H_%M_%S-%Z'):
 
 
 def seconds_from_now(secs=0, tz='utc'):
-    """Get time in Tanium SOAP API format `secs` from now
+    """Get time in Tanium SOAP API format `secs` from now.
 
     Parameters
     ----------
@@ -176,7 +142,7 @@ def seconds_from_now(secs=0, tz='utc'):
 
 
 def timestr_to_datetime(timestr):
-    """Get a datetime.datetime object for `timestr`
+    """Get a datetime.datetime object for `timestr`.
 
     Parameters
     ----------
@@ -192,7 +158,7 @@ def timestr_to_datetime(timestr):
 
 
 def datetime_to_timestr(dt):
-    """Get a timestr for `dt`
+    """Get a timestr for `dt`.
 
     Parameters
     ----------
@@ -208,7 +174,7 @@ def datetime_to_timestr(dt):
 
 
 def port_check(address, port, timeout=5):
-    """Check if `address`:`port` can be reached within `timeout`
+    """Check if `address`:`port` can be reached within `timeout`.
 
     Parameters
     ----------
@@ -231,7 +197,7 @@ def port_check(address, port, timeout=5):
 
 
 def test_app_port(host, port):
-    """Validates that `host`:`port` can be reached using :func:`port_check`
+    """Validate that `host`:`port` can be reached using :func:`port_check`.
 
     Parameters
     ----------
@@ -253,7 +219,7 @@ def test_app_port(host, port):
 
 
 def spew(t):
-    """Prints a string based on DEBUG_OUTPUT bool
+    """Print a string based on DEBUG_OUTPUT bool.
 
     Parameters
     ----------
@@ -261,11 +227,11 @@ def spew(t):
         * string to debug print
     """
     if DEBUG_OUTPUT:
-        print "DEBUG::{}".format(t)
+        print("DEBUG::{}".format(t))
 
 
 def remove_logging_handler(name='all'):
-    """Removes a logging handler
+    """Remove a logging handler.
 
     Parameters
     ----------
@@ -282,39 +248,55 @@ def remove_logging_handler(name='all'):
                 v.removeHandler(handler)
 
 
-def setup_console_logging(gmt_tz=True):
-    """Creates a console logging handler using logging.StreamHandler(sys.stdout)"""
+def configure_logging_tz(**kwargs):
+    """Configure the logging system to use UTC or localtime."""
+    gmt_tz = kwargs.get("gmt_tz", True)
+    logging.Formatter.converter = time.gmtime if gmt_tmz else time.localtime
 
-    ch_name = 'console'
-    remove_logging_handler('console')
 
-    if gmt_tz:
-        # change the default time zone to GM time
-        logging.Formatter.converter = time.gmtime
-    else:
-        logging.Formatter.converter = time.localtime
+def logging_formatter(**kwargs):
+    """Determine formatter to use for logging."""
+    debugformat = kwargs.get("debugformat", False)
+    ret = pytan.constants.DEBUG_FORMAT if debugformat else pytan.constants.INFO_FORMAT
+    return ret
 
-    # add a console handler to all loggers that goes to STDOUT for INFO
-    # and below, but STDERR for WARNING and above (old method)
-    # ch = SplitStreamHandler()
 
-    ch = logging.StreamHandler(sys.stdout)
+def logging_level(**kwargs):
+    """Determine logging level for use in a handler."""
+    debugformat = kwargs.get("debugformat", False)
+    ret = logging.DEBUG if debugformat else logging.INFO
+    return ret
+
+
+def setup_console_logging(**kwargs):
+    """Create a console logging handler using logging.StreamHandler(sys.stdout)."""
+    ch_name = kwargs.get("log_con_handler_name", "pytan_console")
+    ch_output = kwargs.get("log_con_output", sys.stdout)
+    ch_level = kwargs.get("log_con-level", logging_level(**kwargs))
+    ch_format = kwargs.get("log_con_format", logging_formatter(**kwargs)))
+    remove_logging_handler(name=ch_name)
+    ch = logging.StreamHandler(stream=ch_output)
     ch.set_name(ch_name)
-    ch.setLevel(logging.DEBUG)
-    ch.setFormatter(logging.Formatter(pytan.constants.INFO_FORMAT))
+    ch.setLevel(ch_level)
+    ch.setFormatter(logging.Formatter(ch_format))
 
+    # add_pytan_handler func!!
     for k, v in sorted(get_all_pytan_loggers().iteritems()):
         spew("setup_console_logging(): add handler: {0}/{0.name} to logger {1}".format(ch, k))
         v.addHandler(ch)
 
 
 def setup_file_logging(gmt_tz=True, logfilepath=None):
-    """Creates a file logging handler using logging.StreamHandler()"""
-    if logfilepath is None or logfilepath == '':
-        return
-
-    fh_name = 'file'
-    remove_logging_handler('file')
+    """Create a file logging handler using logging.StreamHandler()."""
+    log_file = kwargs.get("log_file", None)
+3
+    if log_file:
+        fh_name = kwargs.get("log_file_handler_name", "pytan_file")
+        fh_output = kwargs.get("log_file_output", sys.stdout)
+        debugformat = kwargs.get("debugformat", False)
+        fh_level = logging.DEBUG if debugformat else logging.INFO
+        fh_format = kwargs.get("log_file_format", logging_formatter(**kwargs)))
+        remove_logging_handler(name=fh_name)
 
     if gmt_tz:
         # change the default time zone to GM time
@@ -323,22 +305,24 @@ def setup_file_logging(gmt_tz=True, logfilepath=None):
         logging.Formatter.converter = time.localtime
 
     # clean / sanitize logfilepath
-    clean_kwargs = { 'path' : logfilepath
-                   , 'return_absolute_path' : True
-                   , 'allow_absolute_path' : False
-                   , 'allow_symbol_home_dir' : True
-                   , 'allow_symbol_parent_dir' : False
-                   }
-    clean_logfilepath = clean_path( **clean_kwargs )
+    margs = {}
+    margs['path'] = logfilepath
+    margs['return_absolute_path'] = True
+    margs['allow_absolute_path'] = False
+    margs['allow_symbol_home_dir'] = True
+    margs['allow_symbol_parent_dir'] = False
+
+    clean_logfilepath = clean_path(**margs)
+
     # create log directory if necessary
     log_dir = os.path.dirname(clean_logfilepath)
     try:
-        os.makedirs( log_dir )
+        os.makedirs(log_dir)
     except:
         pass
 
-    if not os.path.exists( log_dir ):
-        sys.exit("Failed to create log directory: "+log_dir)
+    if not os.path.exists(log_dir):
+        sys.exit("Failed to create log directory: " + log_dir)
 
     # add a file handler to all loggers that goes to STDOUT for INFO
     # and below, but STDERR for WARNING and above (old method)
@@ -353,8 +337,8 @@ def setup_file_logging(gmt_tz=True, logfilepath=None):
         v.addHandler(fh)
 
 
-def change_console_format(debug=False):
-    """Changes the logging format for console handler to :data:`pytan.constants.DEBUG_FORMAT` or :data:`pytan.constants.INFO_FORMAT`
+def change_console_format(**kwargs):
+    """Change the logging format for console handler to :data:`pytan.constants.DEBUG_FORMAT` or :data:`pytan.constants.INFO_FORMAT`.
 
     Parameters
     ----------
@@ -362,17 +346,18 @@ def change_console_format(debug=False):
         * False : set logging format for console handler to :data:`pytan.constants.INFO_FORMAT`
         * True :  set logging format for console handler to :data:`pytan.constants.DEBUG_FORMAT`
     """
+    debugformat = kwargs.get("debugformat", False)
+    f = pytan.constants.DEBUG_FORMAT if debugformat else pytan.constants.INFO_FORMAT
+    f = logging.Formatter(f)
+
     for k, v in sorted(get_all_pytan_loggers().iteritems()):
         for handler in v.handlers:
-            if handler.name == 'console':
-                if debug:
-                    handler.setFormatter(logging.Formatter(pytan.constants.DEBUG_FORMAT))
-                else:
-                    handler.setFormatter(logging.Formatter(pytan.constants.INFO_FORMAT))
+            if handler.name.startswith("pytan_"):
+                handler.setFormatter(f)
 
 
 def set_log_levels(loglevel=0):
-    """Enables loggers based on loglevel and :data:`pytan.constants.LOG_LEVEL_MAPS`
+    """Enable loggers based on loglevel and :data:`pytan.constants.LOG_LEVEL_MAPS`.
 
     Parameters
     ----------
@@ -393,20 +378,19 @@ def set_log_levels(loglevel=0):
 
 
 def print_log_levels():
-    """Prints info about each loglevel from :data:`pytan.constants.LOG_LEVEL_MAPS`"""
+    """Print info about each loglevel from :data:`pytan.constants.LOG_LEVEL_MAPS`."""
     for logmap in pytan.constants.LOG_LEVEL_MAPS:
-        print "Logging level: {} - Description: {}".format(logmap[0], logmap[2])
+        print("Logging level: {} - Description: {}".format(logmap[0], logmap[2]))
         if logmap[0] == 0:
             for k, v in sorted(get_all_pytan_loggers().iteritems()):
-                print "\tLogger {!r} will only show WARNING and above".format(k)
+                print("\tLogger {!r} will only show WARNING and above".format(k))
             continue
         for lname, llevel in logmap[1].iteritems():
-            print "\tLogger {!r} will show {} and above".format(lname, llevel)
+            print("\tLogger {!r} will show {} and above".format(lname, llevel))
 
 
 def set_all_loglevels(level='DEBUG'):
-    """Sets all loggers that the logging system knows about to a given logger level"""
-
+    """Set all loggers that the logging system knows about to a given logger level."""
     for k, v in sorted(get_all_pytan_loggers().iteritems()):
         spew("set_all_loglevels(): setting pytan logger '{}' to {}".format(k, level))
         v.setLevel(getattr(logging, level))
@@ -414,7 +398,7 @@ def set_all_loglevels(level='DEBUG'):
 
 
 def get_all_pytan_loggers():
-    """Gets all loggers currently known to pythons logging system that exist in :data:`pytan.constants.LOG_LEVEL_MAPS`
+    """Get all loggers currently known to pythons logging system that exist in :data:`pytan.constants.LOG_LEVEL_MAPS`.
 
     Creates loggers for any pytan loggers that do not exist yet
     """
@@ -426,7 +410,7 @@ def get_all_pytan_loggers():
 
 
 def get_all_loggers():
-    """Gets all loggers currently known to pythons logging system`"""
+    """Get all loggers currently known to pythons logging system`."""
     logger_dict = logging.Logger.manager.loggerDict
     all_loggers = {k: v for k, v in logger_dict.iteritems() if isinstance(v, logging.Logger)}
     all_loggers['root'] = logging.getLogger()
@@ -434,7 +418,7 @@ def get_all_loggers():
 
 
 def load_taniumpy_from_json(json_file):
-    """Opens a json file and parses it into an taniumpy object
+    """Open a json file and parses it into an taniumpy object.
 
     Parameters
     ----------
@@ -485,7 +469,7 @@ def load_taniumpy_from_json(json_file):
 
 
 def load_param_json_file(parameters_json_file):
-    """Opens a json file and sanity checks it for use as a parameters element for a taniumpy object
+    """Open a json file and sanity checks it for use as a parameters element for a taniumpy object.
 
     Parameters
     ----------
@@ -547,7 +531,7 @@ def load_param_json_file(parameters_json_file):
 
 
 def dehumanize_sensors(sensors, key='sensors', empty_ok=True):
-    """Turns a sensors str or list of str into a sensor definition
+    """Turn a sensors str or list of str into a sensor definition.
 
     Parameters
     ----------
@@ -601,7 +585,7 @@ def dehumanize_sensors(sensors, key='sensors', empty_ok=True):
 
 
 def dehumanize_package(package):
-    """Turns a package str into a package definition
+    """Turn a package str into a package definition.
 
     Parameters
     ----------
@@ -629,7 +613,7 @@ def dehumanize_package(package):
 
 
 def dehumanize_question_filters(question_filters):
-    """Turns a question_filters str or list of str into a question filter definition
+    """Turn a question_filters str or list of str into a question filter definition.
 
     Parameters
     ----------
@@ -673,7 +657,7 @@ def dehumanize_question_filters(question_filters):
 
 
 def dehumanize_question_options(question_options):
-    """Turns a question_options str or list of str into a question option definition
+    """Turn a question_options str or list of str into a question option definition.
 
     Parameters
     ----------
@@ -703,7 +687,7 @@ def dehumanize_question_options(question_options):
 
 
 def extract_selector(s):
-    """Extracts a selector from str `s`
+    """Extract a selector from str `s`.
 
     Parameters
     ----------
@@ -730,7 +714,7 @@ def extract_selector(s):
 
 
 def extract_params(s):
-    """Extracts parameters from str `s`
+    """Extract parameters from str `s`.
 
     Parameters
     ----------
@@ -802,7 +786,7 @@ def extract_params(s):
 
 
 def extract_options(s):
-    """Extracts options from str `s`
+    """Extract options from str `s`.
 
     Parameters
     ----------
@@ -844,7 +828,7 @@ def extract_options(s):
 
 
 def map_options(options, dest):
-    """Maps a list of options using :func:`map_option`
+    """Map a list of options using :func:`map_option`.
 
     Parameters
     ----------
@@ -871,7 +855,7 @@ def map_options(options, dest):
 
 
 def map_option(opt, dest):
-    """Maps an opt str against :data:`constants.OPTION_MAPS`
+    """Map an opt str against :data:`constants.OPTION_MAPS`.
 
     Parameters
     ----------
@@ -927,7 +911,7 @@ def map_option(opt, dest):
 
 
 def extract_filter(s):
-    """Extracts a filter from str `s`
+    """Extract a filter from str `s`.
 
     Parameters
     ----------
@@ -969,7 +953,7 @@ def extract_filter(s):
 
 
 def map_filter(filter_str):
-    """Maps a filter str against :data:`constants.FILTER_MAPS`
+    """Map a filter str against :data:`constants.FILTER_MAPS`.
 
     Parameters
     ----------
@@ -1021,7 +1005,7 @@ def map_filter(filter_str):
 
 
 def get_kwargs_int(key, default=None, **kwargs):
-    """Gets key from kwargs and validates it is an int
+    """Get key from kwargs and validates it is an int.
 
     Parameters
     ----------
@@ -1037,7 +1021,6 @@ def get_kwargs_int(key, default=None, **kwargs):
     val : int
         value from key, or default if supplied
     """
-
     val = kwargs.get(key, default)
     if val is None:
         return val
@@ -1050,7 +1033,7 @@ def get_kwargs_int(key, default=None, **kwargs):
 
 
 def parse_defs(defname, deftypes, strconv=None, empty_ok=True, defs=None, **kwargs):
-    """Parses and validates defs into new_defs
+    """Parse and validates defs into new_defs.
 
     Parameters
     ----------
@@ -1121,7 +1104,7 @@ def parse_defs(defname, deftypes, strconv=None, empty_ok=True, defs=None, **kwar
 
 
 def val_sensor_defs(sensor_defs):
-    """Validates sensor definitions
+    """Validate sensor definitions.
 
     Ensures each sensor definition has a selector, and if a sensor definition has a params, options, or filter key, that each key is valid
 
@@ -1152,7 +1135,7 @@ def val_sensor_defs(sensor_defs):
 
 
 def val_package_def(package_def):
-    """Validates package definitions
+    """Validate package definitions.
 
     Ensures package definition has a selector, and if a package definition has a params key, that key is valid
 
@@ -1183,7 +1166,7 @@ def val_package_def(package_def):
 
 
 def val_q_filter_defs(q_filter_defs):
-    """Validates question filter definitions
+    """Validate question filter definitions.
 
     Ensures each question filter definition has a selector, and if a question filter definition has a filter key, that key is valid
 
@@ -1212,7 +1195,7 @@ def val_q_filter_defs(q_filter_defs):
 
 
 def build_selectlist_obj(sensor_defs):
-    """Creates a SelectList object from sensor_defs
+    """Create a SelectList object from sensor_defs.
 
     Parameters
     ----------
@@ -1269,7 +1252,7 @@ def build_selectlist_obj(sensor_defs):
 
 
 def build_group_obj(q_filter_defs, q_option_defs):
-    """Creates a Group object from q_filter_defs and q_option_defs
+    """Create a Group object from q_filter_defs and q_option_defs.
 
     Parameters
     ----------
@@ -1318,7 +1301,7 @@ def build_group_obj(q_filter_defs, q_option_defs):
 
 
 def build_manual_q(selectlist_obj, group_obj):
-    """Creates a Question object from selectlist_obj and group_obj
+    """Create a Question object from selectlist_obj and group_obj.
 
     Parameters
     ----------
@@ -1339,7 +1322,7 @@ def build_manual_q(selectlist_obj, group_obj):
 
 
 def get_obj_params(obj):
-    """Get the parameters from a TaniumPy object and JSON load them
+    """Get the parameters from a TaniumPy object and JSON load them.
 
     obj : :class:`taniumpy.object_types.base.BaseType`
         * TaniumPy object to get parameters from
@@ -1363,7 +1346,7 @@ def get_obj_params(obj):
 
 
 def build_param_obj(key, val, delim=''):
-    """Creates a Parameter object from key and value, surrounding key with delim
+    """Create a Parameter object from key and value, surrounding key with delim.
 
     Parameters
     ----------
@@ -1387,7 +1370,7 @@ def build_param_obj(key, val, delim=''):
 
 
 def derive_param_default(obj_param):
-    """Derive a parameter default
+    """Derive a parameter default.
 
     Parameters
     ----------
@@ -1417,7 +1400,7 @@ def derive_param_default(obj_param):
 
 
 def build_param_objlist(obj, user_params, delim='', derive_def=False, empty_ok=False):
-    """Creates a ParameterList object from user_params
+    """Create a ParameterList object from user_params.
 
     Parameters
     ----------
@@ -1492,7 +1475,7 @@ def build_param_objlist(obj, user_params, delim='', derive_def=False, empty_ok=F
 
 
 def shrink_obj(obj, attrs=None):
-    """Returns a new class of obj with only id/name/hash defined
+    """Return a new class of obj with only id/name/hash defined.
 
     Parameters
     ----------
@@ -1516,7 +1499,7 @@ def shrink_obj(obj, attrs=None):
 
 
 def copy_obj(obj, skip_attrs=None):
-    """Returns a new class of obj with with out any attributes in skip_attrs specified
+    """Return a new class of obj with with out any attributes in skip_attrs specified.
 
     Parameters
     ----------
@@ -1538,14 +1521,13 @@ def copy_obj(obj, skip_attrs=None):
     [
         setattr(new_obj, a, getattr(obj, a))
         for a in vars(obj)
-        if getattr(obj, a, None) is not None
-        and a not in skip_attrs
+        if getattr(obj, a, None) is not None and a not in skip_attrs
     ]
     return new_obj
 
 
 def copy_package_obj_for_action(obj, skip_attrs=None):
-    """Returns a new class of package obj with with out any attributes in skip_attrs specified
+    """Return a new class of package obj with with out any attributes in skip_attrs specified.
 
     Parameters
     ----------
@@ -1577,7 +1559,7 @@ def copy_package_obj_for_action(obj, skip_attrs=None):
 
 
 def get_filter_obj(sensor_def):
-    """Creates a Filter object from sensor_def
+    """Create a Filter object from sensor_def.
 
     Parameters
     ----------
@@ -1589,7 +1571,6 @@ def get_filter_obj(sensor_def):
     filter_obj : :class:`taniumpy.object_types.filter.Filter`
         * Filter object created from `sensor_def`
     """
-
     # getting sensor
     sensor_obj = sensor_def['sensor_obj']
 
@@ -1646,7 +1627,7 @@ def get_filter_obj(sensor_def):
 
 
 def apply_options_obj(options, obj, dest):
-    """Updates an object with options
+    """Update an object with options.
 
     Parameters
     ----------
@@ -1717,20 +1698,7 @@ def apply_options_obj(options, obj, dest):
                     ).format
                     raise pytan.exceptions.DefinitionParserError(err(k, v))
 
-            value_match = None
-            if valid_values:
-                for x in valid_values:
-                    if v.lower() == x.lower():
-                        value_match = x
-                        break
-
-                if value_match is None:
-                    err = (
-                        "Option {!r} value {!r} does not match one of {}"
-                    ).format
-                    raise pytan.exceptions.DefinitionParserError(err(k, v, valid_values))
-                else:
-                    v = value_match
+            v = check_value_match(k, v, valid_values) or v
 
             # update obj with k = v
             setattr(obj, k, v)
@@ -1742,8 +1710,25 @@ def apply_options_obj(options, obj, dest):
     return obj
 
 
+def check_value_match(option, value, valid_values):
+    """Todo."""
+    value_match = None
+    if valid_values:
+        for x in valid_values:
+            if value.lower() == x.lower():
+                value_match = x
+                break
+
+        if value_match is None:
+            err = (
+                "Option {!r} value {!r} does not match one of {}"
+            ).format
+            raise pytan.exceptions.DefinitionParserError(err(option, value, valid_values))
+    return value_match
+
+
 def chk_def_key(def_dict, key, keytypes, keysubtypes=None, req=False):
-    """Checks that def_dict has key
+    """Check that def_dict has key.
 
     Parameters
     ----------
@@ -1790,7 +1775,7 @@ def chk_def_key(def_dict, key, keytypes, keysubtypes=None, req=False):
 
 
 def empty_obj(taniumpy_object):
-    """Validate that a given TaniumPy object is not empty
+    """Validate that a given TaniumPy object is not empty.
 
     Parameters
     ----------
@@ -1810,7 +1795,7 @@ def empty_obj(taniumpy_object):
 
 
 def get_q_obj_map(qtype):
-    """Gets an object map for `qtype`
+    """Get an object map for `qtype`.
 
     Parameters
     ----------
@@ -1831,7 +1816,7 @@ def get_q_obj_map(qtype):
 
 
 def get_obj_map(objtype):
-    """Gets an object map for `objtype`
+    """Get an object map for `objtype`.
 
     Parameters
     ----------
@@ -1852,7 +1837,7 @@ def get_obj_map(objtype):
 
 
 def get_taniumpy_obj(obj_map):
-    """Gets a taniumpy object from `obj_map`
+    """Get a taniumpy object from `obj_map`.
 
     Parameters
     ----------
@@ -1874,7 +1859,7 @@ def get_taniumpy_obj(obj_map):
 
 
 def check_dictkey(d, key, valid_types, valid_list_types):
-    """Yet another method to check a dictionary for a key
+    """Yet another method to check a dictionary for a key.
 
     Parameters
     ----------
@@ -1903,7 +1888,7 @@ def check_dictkey(d, key, valid_types, valid_list_types):
 
 
 def func_timing(f):
-    """Decorator to add timing information around a function """
+    """Decorator to add timing information around a function."""
     def wrap(*args, **kwargs):
         time1 = datetime.datetime.utcnow()
         ret = f(*args, **kwargs)
@@ -1916,7 +1901,9 @@ def func_timing(f):
 
 
 def eval_timing(c):
-    """Yet another method to time things -- c will be evaluated and timing information will be printed out
+    """Yet another method to time things.
+
+    c will be evaluated and timing information will be printed out.
     """
     t_start = datetime.now()
     r = eval(c)
@@ -1929,7 +1916,7 @@ def eval_timing(c):
 
 
 def xml_pretty(x, pretty=True, indent='  ', **kwargs):
-    """Uses :mod:`xmltodict` to pretty print an XML str `x`
+    """Use :mod:`xmltodict` to pretty print an XML str `x`.
 
     Parameters
     ----------
@@ -1941,15 +1928,13 @@ def xml_pretty(x, pretty=True, indent='  ', **kwargs):
     str :
         * The pretty printed string of `x`
     """
-
     x_parsed = xmltodict.parse(x)
     x_unparsed = xmltodict.unparse(x_parsed, pretty=pretty, indent=indent)
     return x_unparsed
 
 
 def log_session_communication(h):
-    """Uses :func:`xml_pretty` to pretty print the last request and response bodies from the
-    session object in h to the logging system
+    """Log the last request and response bodies from the session object in h using xml_pretty.
 
     Parameters
     ----------
@@ -1976,7 +1961,7 @@ def log_session_communication(h):
 
 
 def xml_pretty_resultxml(x):
-    """Uses :mod:`xmltodict` to pretty print an the ResultXML element in XML str `x`
+    """Use :mod:`xmltodict` to pretty print an the ResultXML element in XML str `x`.
 
     Parameters
     ----------
@@ -1988,7 +1973,6 @@ def xml_pretty_resultxml(x):
     str :
         * The pretty printed string of ResultXML in `x`
     """
-
     x_parsed = xmltodict.parse(x)
     x_find = x_parsed["soap:Envelope"]["soap:Body"]["t:return"]["ResultXML"]
     x_unparsed = xml_pretty(x_find)
@@ -1996,7 +1980,7 @@ def xml_pretty_resultxml(x):
 
 
 def xml_pretty_resultobj(x):
-    """Uses :mod:`xmltodict` to pretty print an the result-object element in XML str `x`
+    """Use :mod:`xmltodict` to pretty print an the result-object element in XML str `x`.
 
     Parameters
     ----------
@@ -2008,7 +1992,6 @@ def xml_pretty_resultobj(x):
     str :
         * The pretty printed string of result-object in `x`
     """
-
     x_parsed = xmltodict.parse(x)
     x_find = x_parsed["soap:Envelope"]["soap:Body"]["t:return"]
     x_find = x_parsed["result-object"]
@@ -2017,7 +2000,7 @@ def xml_pretty_resultobj(x):
 
 
 def get_dict_list_len(d, keys=[], negate=False):
-    """Gets the sum of each list in dict `d`
+    """Get the sum of each list in dict `d`.
 
     Parameters
     ----------
@@ -2046,7 +2029,7 @@ def get_dict_list_len(d, keys=[], negate=False):
 
 
 def build_metadatalist_obj(properties, nameprefix=""):
-    """Creates a MetadataList object from properties
+    """Create a MetadataList object from properties.
 
     Parameters
     ----------
@@ -2076,7 +2059,7 @@ def build_metadatalist_obj(properties, nameprefix=""):
 
 
 def get_percentage(part, whole):
-    """Utility method for getting percentage of part out of whole
+    """Utility method for getting percentage of part out of whole.
 
     Parameters
     ----------
@@ -2093,7 +2076,7 @@ def get_percentage(part, whole):
 
 
 def calc_percent(percent, whole):
-    """Utility method for getting percentage of whole
+    """Utility method for getting percentage of whole.
 
     Parameters
     ----------
@@ -2108,7 +2091,7 @@ def calc_percent(percent, whole):
 
 
 def plugin_zip(p):
-    """Maps columns to values for each row in a plugins sql_response and returns a list of dicts
+    """Map columns to values for each row in a plugins sql_response and returns a list of dicts.
 
     Parameters
     ----------
@@ -2126,7 +2109,7 @@ def plugin_zip(p):
 
 
 def clean_kwargs(kwargs, keys=None):
-    """Removes each key from kwargs dict if found
+    """Remove each key from kwargs dict if found.
 
     Parameters
     ----------
@@ -2150,7 +2133,7 @@ def clean_kwargs(kwargs, keys=None):
 
 
 def check_for_help(kwargs):
-    """Utility method to check for any help arguments and raise a PytanHelp exception with the appropriate help
+    """Check for any help arguments and raise a PytanHelp exception with the appropriate help.
 
     Parameters
     ----------
@@ -2165,7 +2148,7 @@ def check_for_help(kwargs):
 
 
 def parse_versioning(server_version):
-    """Parses server_version into a dictionary
+    """Parse server_version into a dictionary.
 
     Parameters
     ----------
@@ -2193,7 +2176,7 @@ def parse_versioning(server_version):
 
 
 def calculate_question_start_time(q):
-    """Caclulates the start time of a question by doing q.expiration - q.expire_seconds
+    """Caclulate the start time of a question by doing q.expiration - q.expire_seconds.
 
     Parameters
     ----------
@@ -2213,7 +2196,7 @@ def calculate_question_start_time(q):
 
 
 def vig_encode(key, string):
-    """Obfuscates a string with a key using Vigenere cipher.
+    """Obfuscate a string with a key using Vigenere ciphers.
 
     Only useful for obfuscation, not real security!!
 
@@ -2231,7 +2214,7 @@ def vig_encode(key, string):
     """
     string = str(string)
     encoded_chars = []
-    for i in xrange(len(string)):
+    for i in xrange(len(string)):  # noqa
         key_c = key[i % len(key)]
         encoded_c = chr(ord(string[i]) + ord(key_c) % 256)
         encoded_chars.append(encoded_c)
@@ -2242,7 +2225,7 @@ def vig_encode(key, string):
 
 
 def vig_decode(key, string):
-    """De-obfuscates a string with a key using Vigenere cipher.
+    """De-obfuscate a string with a key using Vigenere cipher.
 
     Only useful for obfuscation, not real security!!
 
@@ -2270,7 +2253,7 @@ def vig_decode(key, string):
     v_string = base64.urlsafe_b64decode(string)
 
     decoded_chars = []
-    for i in xrange(len(v_string)):
+    for i in xrange(len(v_string)):  # noqa
         key_c = key[i % len(key)]
         encoded_c = chr(abs(ord(v_string[i]) - ord(key_c) % 256))
         decoded_chars.append(encoded_c)
