@@ -287,6 +287,7 @@ def setup_console_logging(**kwargs):
 
 
 # TODO: fix this up more
+'''
 def setup_file_logging(gmt_tz=True, logfilepath=None, **kwargs):
     """Create a file logging handler using logging.StreamHandler()."""
     log_file = kwargs.get("log_file", None)
@@ -335,6 +336,7 @@ def setup_file_logging(gmt_tz=True, logfilepath=None, **kwargs):
     for k, v in sorted(get_all_pytan_loggers().iteritems()):
         spew("setup_file_logging(): add handler: {0}/{0.name} to logger {1}".format(fh, k))
         v.addHandler(fh)
+'''
 
 
 def change_console_format(**kwargs):
@@ -2262,6 +2264,7 @@ def vig_decode(key, string):
 
 
 # TODO: fix this up more
+'''
 def clean_path(path=None, return_absolute_path=True, return_real_path=True,
                allow_absolute_path=True, allow_symbol_home_dir=True,
                allow_symbol_parent_dir=True):
@@ -2327,3 +2330,4 @@ def clean_path(path=None, return_absolute_path=True, return_real_path=True,
     if return_real_path:
         cleaned_path = os.path.realpath( cleaned_path )  # noqa
     return cleaned_path
+'''
