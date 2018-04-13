@@ -1696,7 +1696,7 @@ class Handler(object):
                 filelist_obj.append(file_obj)
             add_package_obj.files = filelist_obj
 
-        h = "Issue an AddObject to add a Group object for this package"
+        h = "Issue an AddObject to add a Package object for this package"
         package_obj = self._add(obj=add_package_obj, pytan_help=h, **clean_kwargs)
 
         m = "New package {!r} created with ID {!r}, command: {!r}".format
