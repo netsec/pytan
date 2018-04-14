@@ -1,14 +1,10 @@
-#!/usr/bin/env python
-# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
-# ex: set tabstop=4
-# Please do not change the two lines above. See PEP 8, PEP 263.
-"""This is a regex based XML cleaner that will replace unsupported characters"""
-import sys
-import re
+"""A regex based XML cleaner that will replace unsupported character."""
 import logging
+import re
+import sys
 
-# disable python from creating .pyc files everywhere
-sys.dont_write_bytecode = True
+# flake8: noqa
+# this whole file has py2 exclusive items in it, flake8 throws syntax errors on u() and unicode()
 
 mylog = logging.getLogger("XMLCleaner")
 
@@ -75,25 +71,25 @@ for i in [hex(i) for i in range(1, 17)]:
     ])
 
 XML_1_0_VALID_UNI = ['-'.join([unichr(y) for y in x]) for x in XML_1_0_VALID_HEX]
-INVALID_UNICODE_RAW_RE = ur'[^{}]'.format(''.join(XML_1_0_VALID_UNI))
+INVALID_UNICODE_RAW_RE = ur'[^{}]'.format(''.join(XML_1_0_VALID_UNI))  # noqa # py2 only
 """The raw regex string to use when replacing invalid characters"""
 
 INVALID_UNICODE_RE = re.compile(INVALID_UNICODE_RAW_RE, re.U)
 """The regex object to use when replacing invalid characters"""
 
 XML_1_0_RESTRICTED_UNI = ['-'.join([unichr(y) for y in x]) for x in XML_1_0_RESTRICTED_HEX]
-RESTRICTED_UNICODE_RAW_RE = ur'[{}]'.format(''.join(XML_1_0_RESTRICTED_UNI))
+RESTRICTED_UNICODE_RAW_RE = ur'[{}]'.format(''.join(XML_1_0_RESTRICTED_UNI))  # noqa # py2 only
 """The raw regex string to use when replacing restricted characters"""
 
 RESTRICTED_UNICODE_RE = re.compile(RESTRICTED_UNICODE_RAW_RE, re.U)
 """The regex object to use when replacing restricted characters"""
 
-DEFAULT_REPLACEMENT = u'\uFFFD'
+DEFAULT_REPLACEMENT = u'\uFFFD'  # noqa # py2 only
 """The default character to use when replacing characters"""
 
 
 def replace_invalid_unicode(text, replacement=None):
-    """Replaces invalid unicode characters with `replacement`
+    """Replace invalid unicode characters with `replacement`.
 
     Parameters
     ----------
@@ -118,7 +114,7 @@ def replace_invalid_unicode(text, replacement=None):
 
 
 def replace_restricted_unicode(text, replacement=None):
-    """Replaces restricted unicode characters with `replacement`
+    """Replace restricted unicode characters with `replacement`.
 
     Parameters
     ----------
@@ -144,7 +140,7 @@ def replace_restricted_unicode(text, replacement=None):
 
 def xml_cleaner(s, encoding='utf-8', clean_restricted=True, log_clean_messages=True,
                 log_bad_characters=False, replacement=None, **kwargs):
-    """Removes invalid /restricted characters per XML 1.0 spec
+    """Remove invalid /restricted characters per XML 1.0 spec.
 
     Parameters
     ----------
@@ -172,14 +168,14 @@ def xml_cleaner(s, encoding='utf-8', clean_restricted=True, log_clean_messages=T
         try:
             # if orig_str is not unicode, decode the string into unicode with encoding
             s = s.decode(encoding, 'xmlcharrefreplace')
-        except:
+        except Exception:
             if log_clean_messages:
                 m = "Falling back to latin1 for decoding, unable to decode as UTF-8!".format
                 mylog.warning(m())
             try:
                 # if can't decode as encoding, fallback to latin1
                 s = s.decode('latin1', 'xmlcharrefreplace')
-            except:
+            except Exception:
                 if log_clean_messages:
                     m = (
                         "Unable to decode as latin-1 or UTF-8, decoding document as UTF-8 and "

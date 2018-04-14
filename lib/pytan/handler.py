@@ -13,8 +13,8 @@ path_adds = [parent_dir]
 [sys.path.insert(0, aa) for aa in path_adds if aa not in sys.path]
 
 try:
-    import taniumpy
     import pytan
+    import taniumpy
 except Exception:
     raise
 
@@ -114,8 +114,9 @@ class Handler(object):
         * True: add each requests response object to session.ALL_REQUESTS_RESPONSES
         * This is passed through to :class:`pytan.sessions.Session`
     stats_loop_targets : list of dict, optional
-        * default: [{'Version': 'Settings/Version'}, {'Active Questions': 'Active Question Cache/Active Question Estimate'}, {'Clients': 'Active Question Cache/Active Client Estimate'}, {'Strings': 'String Cache/Total String Count'}, {'Handles': 'System Performance Info/HandleCount'}, {'Processes': 'System Performance Info/ProcessCount'}, {'Memory Available': 'percentage(System Performance Info/PhysicalAvailable,System Performance Info/PhysicalTotal)'}]
-        * list of dictionaries with the key being the section of info.json to print info from, and the value being the item with in that section to print the value
+        * default: See: :attr:`pytan.sessions.Session.STATS_LOOP_TARGETS`
+        * list of dictionaries with the key being the section of info.json to print info from,
+          and the value being the item with in that section to print the value
         * This is passed through to :class:`pytan.sessions.Session`
     persistent: bool, optional
         * default: False
@@ -357,7 +358,9 @@ class Handler(object):
         Returns
         -------
         result : dict, containing:
-            * `question_object` : one of the following depending on `qtype`: :class:`taniumpy.object_types.question.Question` or :class:`taniumpy.object_types.saved_question.SavedQuestion`
+            * `question_object` : one of the following depending on `qtype`:
+              :class:`taniumpy.object_types.question.Question`
+              :class:`taniumpy.object_types.saved_question.SavedQuestion`
             * `question_results` : :class:`taniumpy.object_types.result_set.ResultSet`
 
         See Also
@@ -419,22 +422,28 @@ class Handler(object):
             * This is passed through to :class:`pytan.pollers.QuestionPoller`
         callbacks : dict, optional
             * default: {}
-            * can be a dict of functions to be run with the key names being the various state changes: 'ProgressChanged', 'AnswersChanged', 'AnswersComplete'
+            * can be a dict of functions to be run with the key names being the various state changes:
+             'ProgressChanged', 'AnswersChanged', 'AnswersComplete'
             * This is passed through to :func:`pytan.pollers.QuestionPoller.run`
         override_estimated_total : int, optional
-            * instead of getting number of systems that should see this question from result_info.estimated_total, use this number
+            * use this number as estimated_total of systems instead of getting it from result_info
             * This is passed through to :func:`pytan.pollers.QuestionPoller`
         force_passed_done_count : int, optional
-            * when this number of systems have passed the right hand side of the question, consider the question complete
+            * when this number of systems have passed the right hand side of the question,
+              consider the question complete
             * This is passed through to :func:`pytan.pollers.QuestionPoller`
 
         Returns
         -------
         ret : dict, containing
-            * `question_object` : :class:`taniumpy.object_types.saved_question.SavedQuestion`, the saved question object
-            * `question_object` : :class:`taniumpy.object_types.question.Question`, the question asked by `saved_question_object`
-            * `question_results` : :class:`taniumpy.object_types.result_set.ResultSet`, the results for `question_object`
-            * `poller_object` : None if `refresh_data` == False, elsewise :class:`pytan.pollers.QuestionPoller`, poller object used to wait until all results are in before getting `question_results`,
+            * `question_object` : :class:`taniumpy.object_types.saved_question.SavedQuestion`
+              the saved question object
+            * `question_object` : :class:`taniumpy.object_types.question.Question`
+               the question asked by `saved_question_object`
+            * `question_results` : :class:`taniumpy.object_types.result_set.ResultSet`
+              the results for `question_object`
+            * `poller_object` : None if `refresh_data` == False, elsewise :class:`pytan.pollers.QuestionPoller`
+              poller object used to wait until all results are in before getting `question_results`
             * `poller_success` : None if `refresh_data` == False, elsewise True or False
 
         Notes
@@ -574,21 +583,26 @@ class Handler(object):
             * This is passed through to :class:`pytan.pollers.QuestionPoller`
         callbacks : dict, optional
             * default: {}
-            * can be a dict of functions to be run with the key names being the various state changes: 'ProgressChanged', 'AnswersChanged', 'AnswersComplete'
+            * can be a dict of functions to be run with the key names being the various state changes:
+             'ProgressChanged', 'AnswersChanged', 'AnswersComplete'
             * This is passed through to :func:`pytan.pollers.QuestionPoller.run`
         override_estimated_total : int, optional
-            * instead of getting number of systems that should see this question from result_info.estimated_total, use this number
+            * use this number as estimated_total of systems instead of getting it from result_info
             * This is passed through to :func:`pytan.pollers.QuestionPoller`
         force_passed_done_count : int, optional
-            * when this number of systems have passed the right hand side of the question, consider the question complete
+            * when this number of systems have passed the right hand side of the question,
+              consider the question complete
             * This is passed through to :func:`pytan.pollers.QuestionPoller`
 
         Returns
         -------
         result : dict, containing:
-            * `question_object` : :class:`taniumpy.object_types.question.Question`, the actual question created and added by PyTan
-            * `question_results` : :class:`taniumpy.object_types.result_set.ResultSet`, the Result Set for `question_object` if `get_results` == True
-            * `poller_object` : :class:`pytan.pollers.QuestionPoller`, poller object used to wait until all results are in before getting `question_results`
+            * `question_object` : :class:`taniumpy.object_types.question.Question`
+              the actual question created and added by PyTan
+            * `question_results` : :class:`taniumpy.object_types.result_set.ResultSet`
+              the ResultSet for `question_object` if `get_results` == True
+            * `poller_object` : :class:`pytan.pollers.QuestionPoller`
+               poller object used to wait until all results are in before getting `question_results`
             * `poller_success` : None if `get_results` == True, elsewise True or False
 
         Examples
@@ -623,40 +637,56 @@ class Handler(object):
 
         Asking the same question in PyTan has some similarities:
 
-            >>> r = handler.ask_manual(sensors=['Computer Name', 'IP Route Details'], question_filters=['Is Windows, that contains:True'])
+            >>> sensors = ['Computer Name', 'IP Route Details']
+            >>> filters = ['Is Windows, that contains:True']
+            >>> r = handler.ask_manual(sensors=sensors, question_filters=filters)
 
-        There are two sensors in this question, after the "Get" and before the "from all machines": "Computer Name" and "IP Route Details". The sensors after the "Get" and before the "from all machines" can be referred to as any number of things:
+        There are two sensors in this question, after the "Get" and before the "from all machines":
+        "Computer Name" and "IP Route Details".
+
+        The sensors after the "Get" and before the "from all machines" can be referred to as any number of things:
 
             * sensors
             * left hand side
             * column selects
 
-        The sensors that are defined after the "Get" and before the "from all machines" are best described as a column selection, and control what columns you want to show up in your results. These sensor names are the same ones that would need to be passed into ask_question() for the sensors arguments.
+        The sensors that are defined after the "Get" and before the "from all machines"
+        are best described as a column selection, and control what columns you want to show up in your results.
+        These sensor names are the same ones that would need to be passed into ask_question() for the sensors arguments.
 
         You can filter your column selections by using a filter in the console like so:
 
-            Get Computer Name starting with "finance" and IP Route Details from all machines with Is Windows containing "True"
+            Get Computer Name starting with "finance" and IP Route Details
+              from all machines with Is Windows containing "True"
 
         And in PyTan:
 
-             >>> r = handler.ask_manual(sensors=['Computer Name, that starts with:finance', 'IP Route Details'], question_filters=['Is Windows, that contains:True'])
+             >>> sensors = ['Computer Name, that starts with:finance', 'IP Route Details']
+             >>> filters = ['Is Windows, that contains:True']
+             >>> r = handler.ask_manual(sensors=sensors, question_filters=filters)
 
-        This will cause the results to have the same number of columns, but for any machine that returns results that do not match the filter specified for a given sensor, the row for that column will contain "[no results]".
+        This will cause the results to have the same number of columns, but for any machine that returns
+        results that do not match the filter specified for a given sensor, the row for that column will
+        contain "[no results]".
 
-        There is also a sensor specified after the "from all machines with": "Is Windows". This sensor can be referred to as any number of things:
+        There is also a sensor specified after the "from all machines with": "Is Windows".
+        This sensor can be referred to as any number of things:
 
             * question filters
             * sensors (also)
             * right hand side
             * row selects
 
-        Any system that does not match the conditions in the question filters will return no results at all.  These question filters are really just sensors all over again, but instead of controlling what columns are output in the results, they control what rows are output in the results.
+        Any system that does not match the conditions in the question filters will return no results at all.
+        These question filters are really just sensors all over again, but instead of controlling
+        what columns are output in the results, they control what rows are output in the results.
 
         See Also
         --------
         :data:`pytan.constants.FILTER_MAPS` : valid filter dictionaries for filters
         :data:`pytan.constants.OPTION_MAPS` : valid option dictionaries for options
-        :func:`pytan.handler.Handler._ask_manual` : private method with the actual workflow used to create and add the question object
+        :func:`pytan.handler.Handler._ask_manual` : private method with the actual workflow
+          used to create and add the question object
         """
         pytan.utils.check_for_help(kwargs=kwargs)
 
@@ -748,28 +778,37 @@ class Handler(object):
             * This is passed through to :class:`pytan.pollers.QuestionPoller`
         callbacks : dict, optional
             * default: {}
-            * can be a dict of functions to be run with the key names being the various state changes: 'ProgressChanged', 'AnswersChanged', 'AnswersComplete'
+            * can be a dict of functions to be run with the key names being the various state changes:
+              'ProgressChanged', 'AnswersChanged', 'AnswersComplete'
             * This is passed through to :func:`pytan.pollers.QuestionPoller.run`
         override_estimated_total : int, optional
-            * instead of getting number of systems that should see this question from result_info.estimated_total, use this number
+            * use this number as estimated_total of systems instead of getting it from result_info
             * This is passed through to :func:`pytan.pollers.QuestionPoller`
         force_passed_done_count : int, optional
-            * when this number of systems have passed the right hand side of the question, consider the question complete
+            * when this number of systems have passed the right hand side of the question,
+              consider the question complete
             * This is passed through to :func:`pytan.pollers.QuestionPoller`
 
         Returns
         -------
         ret : dict, containing:
-            * `question_object` : :class:`taniumpy.object_types.question.Question`, the actual question added by PyTan
-            * `question_results` : :class:`taniumpy.object_types.result_set.ResultSet`, the Result Set for `question_object` if `get_results` == True
-            * `poller_object` : :class:`pytan.pollers.QuestionPoller`, poller object used to wait until all results are in before getting `question_results`
-            * `poller_success` : None if `get_results` == True, elsewise True or False
-            * `parse_results` : :class:`taniumpy.object_types.parse_result_group_list.ParseResultGroupList`, the parse result group returned from Tanium after parsing `question_text`
+            * `question_object` : :class:`taniumpy.object_types.question.Question`
+              the actual question added by PyTan
+            * `question_results` : :class:`taniumpy.object_types.result_set.ResultSet`
+              the Result Set for `question_object` if `get_results` == True
+            * `poller_object` : :class:`pytan.pollers.QuestionPoller`
+              poller object used to wait until all results are in before getting `question_results`
+            * `poller_success` : None if `get_results` == True
+              elsewise True or False
+            * `parse_results` : :class:`taniumpy.object_types.parse_result_group_list.ParseResultGroupList`
+              the parse result group returned from Tanium after parsing `question_text`
 
         Examples
         --------
 
-        Ask the server to parse 'computer name', but don't pick a choice (will print out a list of choices at critical logging level and then throw an exception):
+        Ask the server to parse 'computer name', but don't pick a choice
+        Will print out a list of choices at critical logging level and then throw an exception:
+
             >>> v = handler.ask_parsed('computer name')
 
         Ask the server to parse 'computer name' and pick index 1 as the question you want to run:
@@ -871,7 +910,8 @@ class Handler(object):
             * package to deploy with this action
         action_filters : str, list of str, optional
             * default: []
-            * each string must describe a sensor and a filter which limits which computers the action will deploy `package` to
+            * each string must describe a sensor and a filter which limits which computers
+              the action will deploy `package` to
         action_group : str, optional
             * have an action group assigned to allow for proper scoping of actions
         action_options : str, list of str, optional
@@ -891,7 +931,8 @@ class Handler(object):
             * expire action N seconds from now, will be derived from package if not supplied
         run : bool, optional
             * default: False
-            * False: just ask the question that pertains to verify action, export the results to CSV, and raise pytan.exceptions.RunFalse -- does not deploy the action
+            * False: just ask the question that pertains to verify action, export the results to CSV, and
+              raise pytan.exceptions.RunFalse -- does not deploy the action
             * True: actually deploy the action
         get_results : bool, optional
             * default: True
@@ -922,14 +963,23 @@ class Handler(object):
         Returns
         -------
         ret : dict, containing:
-            * `saved_action_object` : :class:`taniumpy.object_types.saved_action.SavedAction`, the saved_action added for this action (None if 6.2)
-            * `action_object` : :class:`taniumpy.object_types.action.Action`, the action object that tanium created for `saved_action`
-            * `package_object` : :class:`taniumpy.object_types.package_spec.PackageSPec`, the package object used in `saved_action`
-            * `action_info` : :class:`taniumpy.object_types.result_info.ResultInfo`, the initial GetResultInfo call done before getting results
-            * `poller_object` : :class:`pytan.pollers.ActionPoller`, poller object used to wait until all results are in before getting `action_results`
-            * `poller_success` : None if `get_results` == False, elsewise True or False
-            * `action_results` : None if `get_results` == False, elsewise :class:`taniumpy.object_types.result_set.ResultSet`, the results for `action_object`
-            * `action_result_map` : None if `get_results` == False, elsewise progress map for `action_object` in dictionary form
+            * `saved_action_object` : :class:`taniumpy.object_types.saved_action.SavedAction`
+              the saved_action added for this action (None if 6.2)
+            * `action_object` : :class:`taniumpy.object_types.action.Action`
+              the action object that tanium created for `saved_action`
+            * `package_object` : :class:`taniumpy.object_types.package_spec.PackageSPec`
+              the package object used in `saved_action`
+            * `action_info` : :class:`taniumpy.object_types.result_info.ResultInfo`
+              the initial GetResultInfo call done before getting results
+            * `poller_object` : :class:`pytan.pollers.ActionPoller`
+              poller object used to wait until all results are in before getting `action_results`
+            * `poller_success` : None if `get_results` == False
+              elsewise True or False
+            * `action_results` : None if `get_results` == False
+              elsewise :class:`taniumpy.object_types.result_set.ResultSet`
+              the results for `action_object`
+            * `action_result_map` : None if `get_results` == False
+              elsewise progress map for `action_object` in dictionary form
 
         Examples
         --------
@@ -949,7 +999,8 @@ class Handler(object):
         --------
         :data:`pytan.constants.FILTER_MAPS` : valid filter dictionaries for filters
         :data:`pytan.constants.OPTION_MAPS` : valid option dictionaries for options
-        :func:`pytan.handler.Handler._deploy_action` : private method with the actual workflow used to create and add the action object
+        :func:`pytan.handler.Handler._deploy_action` : private method with the actual workflow
+          used to create and add the action object
         """
         pytan.utils.check_for_help(kwargs=kwargs)
 
@@ -1054,7 +1105,8 @@ class Handler(object):
     def get_result_data(self, obj, aggregate=False, shrink=True, **kwargs):
         """Get the result data for a python API object.
 
-        This method issues a GetResultData command to the SOAP api for `obj`. GetResultData returns the columns and rows that are currently available for `obj`.
+        This method issues a GetResultData command to the SOAP api for `obj`.
+        GetResultData returns the columns and rows that are currently available for `obj`.
 
         Parameters
         ----------
@@ -1075,10 +1127,15 @@ class Handler(object):
             The return of GetResultData for `obj`
         """
         """ note #1 from jwk:
-        For Action GetResultData: You have to make a ResultInfo request at least once every 2 minutes. The server gathers the result data by asking a saved question. It won't re-issue the saved question unless you make a GetResultInfo request. When you make a GetResultInfo request, if there is no question that is less than 2 minutes old, the server will automatically reissue a new question instance to make sure fresh data is available.
+        For Action GetResultData: You have to make a ResultInfo request at least once every 2 minutes.
+        The server gathers the result data by asking a saved question.
+        It won't re-issue the saved question unless you make a GetResultInfo request.
+        When you make a GetResultInfo request, if there is no question that is less than 2 minutes old,
+        the server will automatically reissue a new question instance to make sure fresh data is available.
 
         note #2 from jwk:
-        To get the aggregate data (without computer names), set row_counts_only_flag = 1. To get the computer names, use row_counts_only_flag = 0 (default).
+        To get the aggregate data (without computer names), set row_counts_only_flag = 1.
+        To get the computer names, use row_counts_only_flag = 0 (default).
         """
         if shrink:
             shrunk_obj = pytan.utils.shrink_obj(obj=obj)
@@ -1115,7 +1172,10 @@ class Handler(object):
         result set and save it as `export_format`. Then the user can use an authenticated GET
         request to get the status of the file via "/export/${export_id}.status". Once the status
         returns "Completed.", the actual report file can be retrieved by an authenticated GET
-        request to "/export/${export_id}.gz". This workflow saves a lot of processing time and removes the need to paginate large result sets necessary in normal GetResultData calls.
+        request to "/export/${export_id}.gz".
+
+        This workflow saves a lot of processing time and removes the need to paginate large result sets
+        necessary in normal GetResultData calls.
 
         *Version support*
             * 6.5.314.4231: initial sse support (csv only)
@@ -1147,7 +1207,7 @@ class Handler(object):
         Returns
         -------
         export_data : either `str` or :class:`taniumpy.object_types.result_set.ResultSet`
-            * If sse_format is one of csv, xml, or cef, export_data will be a `str` containing the contents of the ResultSet in said format
+            * If sse_format is one of csv, xml, or cef, export_data will be a `str`
             * If sse_format is xml_obj, export_data will be a :class:`taniumpy.object_types.result_set.ResultSet`
         """
         self._check_sse_version()
@@ -1223,7 +1283,8 @@ class Handler(object):
     def get_result_info(self, obj, shrink=True, **kwargs):
         """Get the result info for a python API object.
 
-        This method issues a GetResultInfo command to the SOAP api for `obj`. GetResultInfo returns information about how many servers have passed the `obj`, total number of servers, and so on.
+        This method issues a GetResultInfo command to the SOAP api for `obj`.
+        GetResultInfo returns information about how many servers have passed the `obj`, number of servers, etc.
 
         Parameters
         ----------
@@ -1328,7 +1389,9 @@ class Handler(object):
         return ret
 
     def run_plugin(self, obj, **kwargs):
-        """Wrapper around :func:`pytan.session.Session.run_plugin` to run the plugin and zip up the SQL results into a python dictionary.
+        """Wrapper around :func:`pytan.session.Session.run_plugin`.
+
+        Runs the plugin and zip up the SQL results into a python dictionary.
 
         Parameters
         ----------
@@ -1907,7 +1970,9 @@ class Handler(object):
             * the format to export `obj` to, one of: {'csv', 'xml', 'json'}
         header_sort : list of str, bool, optional
             * default: True
-            * for `export_format` csv and `obj` types :class:`taniumpy.object_types.base.BaseType` or :class:`taniumpy.object_types.result_set.ResultSet`
+            * for `export_format` csv and `obj` types:
+             :class:`taniumpy.object_types.base.BaseType`
+             :class:`taniumpy.object_types.result_set.ResultSet`
             * True: sort the headers automatically
             * False: do not sort the headers at all
             * list of str: sort the headers returned by priority based on provided list
@@ -1944,11 +2009,15 @@ class Handler(object):
 
         Notes
         -----
-        When performing a CSV export and importing that CSV into excel, keep in mind that Excel has a per cell character limit of 32,000. Any cell larger than that will be broken up into a whole new row, which can wreak havoc with data in Excel.
+        When performing a CSV export and importing that CSV into excel,
+        keep in mind that Excel has a per cell character limit of 32,000.
+        Any cell larger than that will be broken up into a whole new row,
+        which can wreak havoc with data in Excel.
 
         See Also
         --------
-        :data:`pytan.constants.EXPORT_MAPS` : maps the type `obj` to `export_format` and the optional args supported for each
+        :data:`pytan.constants.EXPORT_MAPS` : maps the type `obj` to `export_format`
+          and the optional args supported for each
         """
         objtype = type(obj)
         try:
@@ -2077,7 +2146,9 @@ class Handler(object):
             * the format to export `obj` to, one of: {'csv', 'xml', 'json'}
         header_sort : list of str, bool, optional
             * default: True
-            * for `export_format` csv and `obj` types :class:`taniumpy.object_types.base.BaseType` or :class:`taniumpy.object_types.result_set.ResultSet`
+            * for `export_format` csv and `obj` types:
+              :class:`taniumpy.object_types.base.BaseType`
+              :class:`taniumpy.object_types.result_set.ResultSet`
             * True: sort the headers automatically
             * False: do not sort the headers at all
             * list of str: sort the headers returned by priority based on provided list
@@ -2132,7 +2203,10 @@ class Handler(object):
 
         Notes
         -----
-        When performing a CSV export and importing that CSV into excel, keep in mind that Excel has a per cell character limit of 32,000. Any cell larger than that will be broken up into a whole new row, which can wreak havoc with data in Excel.
+        When performing a CSV export and importing that CSV into excel,
+        keep in mind that Excel has a per cell character limit of 32,000.
+        Any cell larger than that will be broken up into a whole new row,
+        which can wreak havoc with data in Excel.
         """
         report_file = kwargs.get('report_file', None)
 
@@ -2755,7 +2829,8 @@ class Handler(object):
     def _deploy_action(self, run=False, get_results=True, **kwargs):
         """Deploy an action and get the results back.
 
-        This method requires in-depth knowledge of how filters and options are created in the API, and as such is not meant for human consumption. Use :func:`deploy_action` instead.
+        This method requires in-depth knowledge of how filters and options are created in the API,
+        and as such is not meant for human consumption. Use :func:`deploy_action` instead.
 
         Parameters
         ----------
@@ -2783,7 +2858,8 @@ class Handler(object):
             * expire action N seconds from now, will be derived from package if not supplied
         run : bool, optional
             * default: False
-            * False: just ask the question that pertains to verify action, export the results to CSV, and raise pytan.exceptions.RunFalse -- does not deploy the action
+            * False: just ask the question that pertains to verify action, export the results to CSV,
+              and raise pytan.exceptions.RunFalse -- does not deploy the action
             * True: actually deploy the action
         get_results : bool, optional
             * default: True
@@ -2814,14 +2890,23 @@ class Handler(object):
         Returns
         -------
         ret : dict, containing:
-            * `saved_action_object` : :class:`taniumpy.object_types.saved_action.SavedAction`, the saved_action added for this action (None if 6.2)
-            * `action_object` : :class:`taniumpy.object_types.action.Action`, the action object that tanium created for `saved_action`
-            * `package_object` : :class:`taniumpy.object_types.package_spec.PackageSPec`, the package object used in `saved_action`
-            * `action_info` : :class:`taniumpy.object_types.result_info.ResultInfo`, the initial GetResultInfo call done before getting results
-            * `poller_object` : :class:`pytan.pollers.ActionPoller`, poller object used to wait until all results are in before getting `action_results`
-            * `poller_success` : None if `get_results` == False, elsewise True or False
-            * `action_results` : None if `get_results` == False, elsewise :class:`taniumpy.object_types.result_set.ResultSet`, the results for `action_object`
-            * `action_result_map` : None if `get_results` == False, elsewise progress map for `action_object` in dictionary form
+            * `saved_action_object` : :class:`taniumpy.object_types.saved_action.SavedAction`
+              the saved_action added for this action (None if 6.2)
+            * `action_object` : :class:`taniumpy.object_types.action.Action`
+              the action object that tanium created for `saved_action`
+            * `package_object` : :class:`taniumpy.object_types.package_spec.PackageSPec`
+              the package object used in `saved_action`
+            * `action_info` : :class:`taniumpy.object_types.result_info.ResultInfo`
+              the initial GetResultInfo call done before getting results
+            * `poller_object` : :class:`pytan.pollers.ActionPoller`
+              poller object used to wait until all results are in before getting `action_results`
+            * `poller_success` : None if `get_results` == False
+              elsewise True or False
+            * `action_results` : None if `get_results` == False
+              elsewise :class:`taniumpy.object_types.result_set.ResultSet`
+              the results for `action_object`
+            * `action_result_map` : None if `get_results` == False
+              elsewise progress map for `action_object` in dictionary form
 
         Examples
         --------
@@ -2852,7 +2937,9 @@ class Handler(object):
             * For 6.2:
                 * We need to add an Action object
                 * The Action object should not be in an ActionList
-                * Action.start_time must be specified, if it is not specified the action shows up as expired immediately. We default to 1 second from current time if start_seconds_from_now is not passed in
+                * Action.start_time must be specified,
+                  if it is not specified the action shows up as expired immediately.
+                  We default to 1 second from current time if start_seconds_from_now is not passed in
 
             * For 6.5 / 6.6:
                 * We need to add a SavedAction object, the server creates the Action object for us
@@ -3200,22 +3287,28 @@ class Handler(object):
             * This is passed through to :class:`pytan.pollers.QuestionPoller`
         callbacks : dict, optional
             * default: {}
-            * can be a dict of functions to be run with the key names being the various state changes: 'ProgressChanged', 'AnswersChanged', 'AnswersComplete'
+            * can be a dict of functions to be run with the key names being the various state changes:
+              'ProgressChanged', 'AnswersChanged', 'AnswersComplete'
             * This is passed through to :func:`pytan.pollers.QuestionPoller.run`
         override_estimated_total : int, optional
-            * instead of getting number of systems that should see this question from result_info.estimated_total, use this number
+            * use this number as estimated_total of systems instead of getting it from result_info
             * This is passed through to :func:`pytan.pollers.QuestionPoller`
         force_passed_done_count : int, optional
-            * when this number of systems have passed the right hand side of the question, consider the question complete
+            * when this number of systems have passed the right hand side of the question,
+              consider the question complete
             * This is passed through to :func:`pytan.pollers.QuestionPoller`
 
         Returns
         -------
         ret : dict, containing:
-            * `question_object` : :class:`taniumpy.object_types.question.Question`, the actual question created and added by PyTan
-            * `question_results` : :class:`taniumpy.object_types.result_set.ResultSet`, the Result Set for `question_object` if `get_results` == True
-            * `poller_object` : :class:`pytan.pollers.QuestionPoller`, poller object used to wait until all results are in before getting `question_results`
-            * `poller_success` : None if `get_results` == True, elsewise True or False
+            * `question_object` : :class:`taniumpy.object_types.question.Question`
+              the actual question created and added by PyTan
+            * `question_results` : :class:`taniumpy.object_types.result_set.ResultSet`
+              the Result Set for `question_object` if `get_results` == True
+            * `poller_object` : :class:`pytan.pollers.QuestionPoller`
+              poller object used to wait until all results are in before getting `question_results`
+            * `poller_success` : None if `get_results` == True
+              elsewise True or False
 
         Examples
         --------
@@ -3487,7 +3580,9 @@ class Handler(object):
         self._check_sse_empty_rs(obj=obj, ok_version=ok_version, **clean_kwargs)
 
     def _check_sse_timing(self, ok_version, **kwargs):
-        """Check that the last server side export was at least 1 second ago if server version is less than any versions in pytan.constants.SSE_CRASH_MAP.
+        """Check that the last server side export was at least 1 second ago.
+
+        Only if server version is less than any versions in pytan.constants.SSE_CRASH_MAP.
 
         Parameters
         ----------
@@ -3505,7 +3600,9 @@ class Handler(object):
         self.last_get_rd_sse = datetime.datetime.utcnow()
 
     def _check_sse_empty_rs(self, obj, ok_version, **kwargs):
-        """Check if the server version is less than any versions in pytan.constants.SSE_CRASH_MAP, if so verifies that the result set is not empty.
+        """Check if the server version is less than any versions in pytan.constants.SSE_CRASH_MAP.
+
+        If so verifies that the result set is not empty.
 
         Parameters
         ----------

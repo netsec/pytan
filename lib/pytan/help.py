@@ -1,13 +1,8 @@
-# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
-# ex: set tabstop=4
-# Please do not change the two lines above. See PEP 8, PEP 263.
-"""Provides methods for the :mod:`pytan` module to print help."""
+"""Provide methods for the :mod:`pytan` module to print help."""
+import os
 import sys
 
-# disable python from creating .pyc files everywhere
-sys.dont_write_bytecode = True
-
-import os
+# flake8: noqa
 
 my_file = os.path.abspath(__file__)
 my_dir = os.path.dirname(my_file)
@@ -15,11 +10,14 @@ parent_dir = os.path.dirname(my_dir)
 path_adds = [parent_dir]
 [sys.path.insert(0, aa) for aa in path_adds if aa not in sys.path]
 
-import pytan
+try:
+    import pytan
+except Exception:
+    raise
 
 
 def passmein(func):
-    """Decorator method to pass the function to a function that uses this decorator"""
+    """Decorator method to pass the function to a function that uses this decorator."""
     def wrapper(*args, **kwargs):
         return func(func, *args, **kwargs)
     return wrapper
@@ -28,8 +26,8 @@ def passmein(func):
 @passmein
 def sensors_help(me):
     """
-Sensors Help
-============
+Help for Sensors.
+=================
 
 Supplying sensors controls what columns will be showed when you ask a
 question.
@@ -181,8 +179,8 @@ the default type for most sensors), re-fetch data older than
 @passmein
 def package_help(me):
     """
-Package Help
-============
+Help for Packages.
+==================
 
 Supplying package defines what package will be deployed as part of the
 action.
@@ -245,8 +243,8 @@ Supplying a package with two parameters, '$1' and '$2':
 @passmein
 def filters_help(me):
     """
-Filters Help
-============
+Help for Filters.
+=================
 
 Filters are used generously throughout pytan. When used as part of a
 sensor string, they control what data is shown for the columns that
@@ -274,8 +272,8 @@ Valid Filters
 @passmein
 def options_help(me):
     """
-Options Help
-============
+Help for Options.
+================
 
 Options are used for controlling how filters act. When options are
 used as part of a sensor string, they change how the filters

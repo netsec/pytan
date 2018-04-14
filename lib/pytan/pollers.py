@@ -1,18 +1,11 @@
-#!/usr/bin/env python
-# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
-# ex: set tabstop=4
-# Please do not change the two lines above. See PEP 8, PEP 263.
-"""Collection of classes and methods for polling of actions/questions in :mod:`pytan`"""
+"""Collection of classes and methods for polling of actions/questions in :mod:`pytan`."""
 
-import sys
-
-# disable python from creating .pyc files everywhere
-sys.dont_write_bytecode = True
-
-import os
 import logging
-import time
+import os
 import pprint
+import sys
+import time
+
 from datetime import datetime
 from datetime import timedelta
 
@@ -22,8 +15,11 @@ parent_dir = os.path.dirname(my_dir)
 path_adds = [parent_dir]
 [sys.path.insert(0, aa) for aa in path_adds if aa not in sys.path]
 
-import taniumpy
-import pytan
+try:
+    import pytan
+    import taniumpy
+except Exception:
+    raise
 
 
 class QuestionPoller(object):
@@ -51,9 +47,10 @@ class QuestionPoller(object):
         * default: 0
         * If supplied and not 0, timeout in seconds instead of when object expires
     override_estimated_total : int, optional
-        * instead of getting number of systems that should see this question from result_info.estimated_total, use this number
+        * use this number as estimated_total of systems instead of getting it from result_info
     force_passed_done_count : int, optional
-        * when this number of systems have passed the right hand side of the question, consider the question complete
+        * when this number of systems have passed the right hand side of the question,
+          consider the question complete
     """
 
     OBJECT_TYPE = taniumpy.object_types.question.Question
@@ -81,7 +78,10 @@ class QuestionPoller(object):
     """attribute of self.obj that contains the expiration for this object"""
 
     EXPIRY_FALLBACK_SECS = 600
-    """If the EXPIRATION_ATTR of `obj` can't be automatically determined, then this is used as a fallback for timeout - polling will failed after this many seconds if completion not reached"""
+    """If the EXPIRATION_ATTR of `obj` can't be automatically determined,
+    then this is used as a fallback for timeout.
+    Polling will fail after this many seconds if completion not reached.
+    """
 
     obj = None
     """The object for this poller"""
@@ -96,6 +96,7 @@ class QuestionPoller(object):
     """Controls whether a run() loop should stop or not"""
 
     def __init__(self, handler, obj, **kwargs):
+        """Constructor."""
         self.methodlog = logging.getLogger("method_debug")
         self.DEBUG_METHOD_LOCALS = kwargs.get('debug_method_locals', False)
 
@@ -127,7 +128,7 @@ class QuestionPoller(object):
         self._post_init(**kwargs)
 
     def setup_logging(self):
-        """Setup loggers for this object"""
+        """Setup loggers for this object."""
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
         self.qualname = "pytan.pollers.{}".format(self.__class__.__name__)
@@ -136,6 +137,7 @@ class QuestionPoller(object):
         self.resolverlog = logging.getLogger(self.qualname + ".resolver")
 
     def __str__(self):
+        """String method."""
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
         class_name = self.__class__.__name__
@@ -144,7 +146,7 @@ class QuestionPoller(object):
         return ret
 
     def _post_init(self, **kwargs):
-        """Post init class setup"""
+        """Post init class setup."""
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
         self.override_estimated_total = kwargs.get('override_estimated_total', 0)
@@ -152,7 +154,7 @@ class QuestionPoller(object):
         self._derive_object_info(**kwargs)
 
     def _refetch_obj(self, **kwargs):
-        """Utility method to re-fetch a object
+        """Utility method to re-fetch a object.
 
         This is used in the case that the obj supplied does not have all the metadata
         available
@@ -171,7 +173,7 @@ class QuestionPoller(object):
         self.obj = obj
 
     def _derive_attribute(self, attr, fallback='', **kwargs):
-        """Derive an attributes value from self.obj
+        """Derive an attributes value from self.obj.
 
         Will re-fetch self.obj if the attribute is not set
 
@@ -222,7 +224,7 @@ class QuestionPoller(object):
         return val
 
     def _derive_object_info(self, **kwargs):
-        """Derive self.object_info from self.obj"""
+        """Derive self.object_info from self.obj."""
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
         clean_keys = ['attr', 'fallback']
@@ -243,9 +245,10 @@ class QuestionPoller(object):
         self.object_info = object_info
 
     def _derive_expiration(self, **kwargs):
-        """Derive the expiration datetime string from a object
+        """Derive the expiration datetime string from a object.
 
-        Will generate a datetime string from self.EXPIRY_FALLBACK_SECS if unable to get the expiration from the object (self.obj) itself.
+        Will generate a datetime string from self.EXPIRY_FALLBACK_SECS if unable
+        to get the expiration from the object (self.obj) itself.
         """
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
@@ -257,8 +260,7 @@ class QuestionPoller(object):
         self.expiration = self._derive_attribute(attr=attr_name, fallback=fb, **clean_kwargs)
 
     def run_callback(self, callbacks, callback, pct, **kwargs):
-        """Utility method to find a callback in callbacks dict and run it
-        """
+        """Utility method to find a callback in callbacks dict and run it."""
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
         if not callbacks.get(callback, ''):
@@ -275,8 +277,8 @@ class QuestionPoller(object):
             m = "Exception occurred in '{}' Callback: {}".format
             self.mylog.warning(m(callback, e))
 
-    def set_complect_pct(self, val): # noqa
-        """Set the complete_pct to a new value
+    def set_complect_pct(self, val):
+        """Set the complete_pct to a new value.
 
         Parameters
         ----------
@@ -288,7 +290,7 @@ class QuestionPoller(object):
         self.complete_pct = val
 
     def get_result_info(self, **kwargs):
-        """Simple utility wrapper around :func:`pytan.handler.Handler.get_result_info`
+        """Simple utility wrapper around :func:`pytan.handler.Handler.get_result_info`.
 
         Parameters
         ----------
@@ -331,7 +333,7 @@ class QuestionPoller(object):
         return result_info
 
     def get_result_data(self, **kwargs):
-        """Simple utility wrapper around :func:`pytan.handler.Handler.get_result_data`
+        """Simple utility wrapper around :func:`pytan.handler.Handler.get_result_data`.
 
         Returns
         -------
@@ -365,9 +367,11 @@ class QuestionPoller(object):
 
         Notes
         -----
-            * Any callback can choose to get data from the session by calling poller.get_result_data() or new info by calling poller.get_result_info()
+            * Any callback can choose to get data from the session by calling poller.get_result_data()
+              or new info by calling poller.get_result_info()
             * Any callback can choose to stop the poller by calling poller.stop()
-            * Polling will be stopped only when one of the callbacks calls the stop() method or the answers are complete.
+            * Polling will be stopped only when one of the callbacks calls the stop()
+              method or the answers are complete.
             * Any callback can call setPercentCompleteThreshold to change what "done" means on the fly
         """
         self._debug_locals(sys._getframe().f_code.co_name, locals())
@@ -389,7 +393,10 @@ class QuestionPoller(object):
         return self.poller_result
 
     def passed_eq_est_total_loop(self, callbacks={}, **kwargs):
-        """Method to poll Result Info for self.obj until the percentage of 'passed' out of 'estimated_total' is greater than or equal to self.complete_pct
+        """Method to poll Result Info for self.obj.
+
+        Polls until the percentage of 'passed' out of 'estimated_total' is
+        greater than or equal to self.complete_pct.
         """
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
@@ -516,10 +523,11 @@ class QuestionPoller(object):
             self.loop_count += 1
 
     def stop(self):
+        """Method to stop the poller from looping."""
         self._stop = True
 
     def _debug_locals(self, fname, flocals):
-        """Method to print out locals for a function if self.DEBUG_METHOD_LOCALS is True"""
+        """Method to print out locals for a function if self.DEBUG_METHOD_LOCALS is True."""
         if getattr(self, 'DEBUG_METHOD_LOCALS', False):
             m = "Local variables for {}.{}:\n{}".format
             self.methodlog.debug(m(self.__class__.__name__, fname, pprint.pformat(flocals)))
@@ -569,7 +577,7 @@ class ActionPoller(QuestionPoller):
     """attribute of self.obj that contains the expiration for this object"""
 
     def _post_init(self, **kwargs):
-        """Post init class setup"""
+        """Post init class setup."""
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
         self.override_passed_count = kwargs.get('override_passed_count', 0)
@@ -583,7 +591,7 @@ class ActionPoller(QuestionPoller):
         self._derive_object_info(**kwargs)
 
     def _derive_status(self, **kwargs):
-        """Get the status attribute for self.obj"""
+        """Get the status attribute for self.obj."""
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
         clean_keys = ['attr', 'fallback']
@@ -594,7 +602,7 @@ class ActionPoller(QuestionPoller):
         self.status = self._derive_attribute(attr=attr_name, fallback=fb, **clean_kwargs)
 
     def _derive_stopped_flag(self, **kwargs):
-        """Get the stopped_flag attribute for self.obj"""
+        """Get the stopped_flag attribute for self.obj."""
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
         clean_keys = ['attr', 'fallback']
@@ -607,7 +615,7 @@ class ActionPoller(QuestionPoller):
         self.stopped_flag = bool(self.stopped_flag)
 
     def _derive_package_spec(self, **kwargs):
-        """Get the package_spec attribute for self.obj, then fetch the full package_spec object"""
+        """Get the package_spec attribute for self.obj, then fetch the full package_spec object."""
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
         clean_keys = ['attr', 'fallback', 'obj']
@@ -623,7 +631,7 @@ class ActionPoller(QuestionPoller):
         self.package_spec = self.handler._find(obj=self.package_spec, **clean_kwargs)
 
     def _derive_target_group(self, **kwargs):
-        """Get the target_group attribute for self.obj, then fetch the full group object"""
+        """Get the target_group attribute for self.obj, then fetch the full group object."""
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
         clean_keys = ['attr', 'fallback', 'obj']
@@ -644,13 +652,13 @@ class ActionPoller(QuestionPoller):
                 self.target_group = self.handler._find(obj=self.target_group, **clean_kwargs)
                 self._fix_group(g=self.target_group)
                 self.passed_count_reliable = True
-            except:
+            except Exception:
                 self.passed_count_reliable = False
                 m = "{}Passed Count unreliable! Unable to find Actions Target Group: {}".format
                 self.mylog.exception(m(self.id_str, self.target_group))
 
     def _fix_group(self, g, **kwargs):
-        """Sets ID to null on a group object and all of it's sub_groups, needed for 6.5"""
+        """Set ID to null on a group object and all of it's sub_groups, needed for 6.5."""
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
         g.id = None
@@ -659,7 +667,7 @@ class ActionPoller(QuestionPoller):
                 self._fix_group(g=x)
 
     def _derive_verify_enabled(self, **kwargs):
-        """Determine if this action has verification enabled"""
+        """Determine if this action has verification enabled."""
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
         self.verify_enabled = False
@@ -671,7 +679,7 @@ class ActionPoller(QuestionPoller):
             self.verify_enabled = True
 
     def _derive_result_map(self, **kwargs):
-        """Determine what self.result_map should contain for the various statuses an action can have
+        """Determine what self.result_map should contain for the various statuses an action can have.
 
         A package object has to have a verify_group defined on it in order
         for deploy action verification to trigger. That can be only done
@@ -724,7 +732,7 @@ class ActionPoller(QuestionPoller):
         self.resolverlog.debug(m(self.id_str, self.result_map))
 
     def _derive_object_info(self, **kwargs):
-        """Derive self.object_info from self.obj"""
+        """Derive self.object_info from self.obj."""
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
         m = "{}Package: '{}', Target: '{}', Verify: {}, Stopped: {}, Status: {}".format
@@ -758,10 +766,15 @@ class ActionPoller(QuestionPoller):
 
         Notes
         -----
-            * Any callback can choose to get data from the session by calling :func:`pytan.poller.QuestionPoller.get_result_data` or new info by calling :func:`pytan.poller.QuestionPoller.get_result_info`
-            * Any callback can choose to stop the poller by calling :func:`pytan.poller.QuestionPoller.stop`
-            * Polling will be stopped only when one of the callbacks calls the :func:`pytan.poller.QuestionPoller.stop` method or the answers are complete.
-            * Any callbacks can call :func:`pytan.poller.QuestionPoller.setPercentCompleteThreshold` to change what "done" means on the fly
+            * Any callback can choose to get data from the session by calling
+              :func:`pytan.poller.QuestionPoller.get_result_data` or new info by calling
+              :func:`pytan.poller.QuestionPoller.get_result_info`
+            * Any callback can choose to stop the poller by calling
+              :func:`pytan.poller.QuestionPoller.stop`
+            * Polling will be stopped only when one of the callbacks calls the
+              :func:`pytan.poller.QuestionPoller.stop` method or the answers are complete.
+            * Any callbacks can call
+              :func:`pytan.poller.QuestionPoller.setPercentCompleteThreshold` to change what "done" means on the fly
         """
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
@@ -813,10 +826,14 @@ class ActionPoller(QuestionPoller):
         return self.poller_result
 
     def seen_eq_passed_loop(self, callbacks={}, **kwargs):
-        """Method to poll Result Info for self.obj until the percentage of 'seen_count' out of 'self.passed_count' is greater than or equal to self.complete_pct
+        """Method to poll Result Info for self.obj.
+
+        Polls until the percentage of 'seen_count' out of 'self.passed_count' is
+        greater than or equal to self.complete_pct
 
         * seen_count is calculated from an aggregate GetResultData
-        * self.passed_count is calculated by the question asked before this method is called. that question has no selects, but has a group that is the same group as the action for this object
+        * self.passed_count is calculated by the question asked before this method is called.
+          that question has no selects, but has a group that is the same group as the action for this object
         """
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
@@ -963,10 +980,14 @@ class ActionPoller(QuestionPoller):
             self.seen_loop_count += 1
 
     def finished_eq_passed_loop(self, callbacks={}, **kwargs):
-        """Method to poll Result Info for self.obj until the percentage of 'finished_count' out of 'self.passed_count' is greater than or equal to self.complete_pct
+        """Method to poll Result Info for self.obj.
+
+        Polls until the percentage of 'finished_count' out of 'self.passed_count' is
+        greater than or equal to self.complete_pct
 
         * finished_count is calculated from a full GetResultData call that is parsed into self.action_result_map
-        * self.passed_count is calculated by the question asked before this method is called. that question has no selects, but has a group that is the same group as the action for this object
+        * self.passed_count is calculated by the question asked before this method is called.
+          that question has no selects, but has a group that is the same group as the action for this object
         """
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
@@ -1154,6 +1175,7 @@ class SSEPoller(QuestionPoller):
         * default: 600
         * timeout in seconds for waiting for status completion, 0 does not time out
     """
+
     STR_ATTRS = [
         'export_id',
         'polling_secs',
@@ -1172,6 +1194,7 @@ class SSEPoller(QuestionPoller):
     """The export_id for this poller"""
 
     def __init__(self, handler, export_id, **kwargs):
+        """Constructor."""
         self.methodlog = logging.getLogger("method_debug")
         self.DEBUG_METHOD_LOCALS = kwargs.get('debug_method_locals', False)
 
@@ -1194,13 +1217,13 @@ class SSEPoller(QuestionPoller):
         self._post_init(**kwargs)
 
     def _post_init(self, **kwargs):
-        """Post init class setup"""
+        """Post init class setup."""
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
         pass
 
     def get_sse_status(self, **kwargs):
-        """Function to get the status of a server side export
+        """Function to get the status of a server side export.
 
         Constructs a URL via: export/${export_id}.status and performs an authenticated HTTP get
         """
@@ -1226,7 +1249,7 @@ class SSEPoller(QuestionPoller):
         return ret
 
     def get_sse_data(self, **kwargs):
-        """Function to get the data of a server side export
+        """Function to get the data of a server side export.
 
         Constructs a URL via: export/${export_id}.gz and performs an authenticated HTTP get
         """
@@ -1252,7 +1275,7 @@ class SSEPoller(QuestionPoller):
         return ret
 
     def run(self, **kwargs):
-        """Poll for server side export status"""
+        """Poll for server side export status."""
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
         self.start = datetime.utcnow()
@@ -1268,7 +1291,7 @@ class SSEPoller(QuestionPoller):
         return self.poller_result
 
     def sse_status_has_completed_loop(self, **kwargs):
-        """Method to poll the status file for a server side export until it contains 'Completed'"""
+        """Method to poll the status file for a server side export until it contains 'Completed'."""
         self._debug_locals(sys._getframe().f_code.co_name, locals())
 
         # loop counter

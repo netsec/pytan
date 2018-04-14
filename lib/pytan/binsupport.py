@@ -1,30 +1,23 @@
-#!/usr/bin/env python
-# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
-# ex: set tabstop=4
-# Please do not change the two lines above. See PEP 8, PEP 263.
-"""Collection of classes and methods used throughout :mod:`pytan` for command line support"""
-import sys
-
-# disable python from creating .pyc files everywhere
-sys.dont_write_bytecode = True
-
-import os
-import logging
-import code
-import traceback
-import pprint
+"""Collection of classes and methods used throughout :mod:`pytan` for command line support."""
 import argparse
-import getpass
-import json
-import string
-import csv
-import io
-import platform
-import datetime
-import time
+import code
 import copy
-from argparse import ArgumentDefaultsHelpFormatter as A1 # noqa
-from argparse import RawDescriptionHelpFormatter as A2 # noqa
+import csv
+import datetime
+import getpass
+import io
+import json
+import logging
+import os
+import platform
+import pprint
+import string
+import sys
+import time
+import traceback
+
+from argparse import ArgumentDefaultsHelpFormatter as A1  # noqa
+from argparse import RawDescriptionHelpFormatter as A2  # noqa
 
 my_file = os.path.abspath(__file__)
 my_dir = os.path.dirname(my_file)
@@ -32,8 +25,16 @@ parent_dir = os.path.dirname(my_dir)
 path_adds = [parent_dir]
 [sys.path.insert(0, aa) for aa in path_adds if aa not in sys.path]
 
-import pytan
-import taniumpy
+try:
+    import pytan
+    import taniumpy
+except Exception:
+    raise
+
+try:
+    user_input = raw_input  # noqa
+except Exception:
+    user_input = input  # noqa
 
 __version__ = pytan.__version__
 pname = os.path.splitext(os.path.basename(sys.argv[0]))[0]
@@ -41,14 +42,18 @@ mylog = logging.getLogger("pytan.handler")
 
 
 class HistoryConsole(code.InteractiveConsole):
-    """Class that provides an interactive python console with full auto complete, history, and history file support.
+    """Class that provides an interactive python console.
+
+    Provides auto complete, console history, and read/write history file support.
 
     Examples
     --------
         >>> HistoryConsole()
     """
+
     def __init__(self, locals=None, filename="<console>",
                  histfile=os.path.expanduser("~/.console-history"), **kwargs):
+        """Constructor."""
         code.InteractiveConsole.__init__(self, locals, filename)
 
         self.debug = kwargs.get('debug', False)
@@ -72,21 +77,21 @@ class HistoryConsole(code.InteractiveConsole):
         self.setup_atexit_write_history(histfile)
 
     def import_readline(self):
+        """Setup readline support."""
         try:
             import readline
             self.readline = readline
             if self.debug:
-                print "imported readline: {}".format(readline.__file__)
-        except:
-            print (
-                "No readline support in this Python build, auto-completetion will not be enabled!"
-            )
+                print("imported readline: {}".format(readline.__file__))
+        except Exception:
+            print("No readline support in this Python build, auto-completetion will not be enabled!")
         else:
             import rlcompleter  # noqa
             if self.debug:
-                print "imported rlcompleter: {}".format(rlcompleter.__file__)
+                print("imported rlcompleter: {}".format(rlcompleter.__file__))
 
     def setup_autocomplete(self):
+        """Setup autocomplete support."""
         readline = self.readline
 
         rlfile = getattr(readline, '__file__', '') or ''
@@ -94,34 +99,33 @@ class HistoryConsole(code.InteractiveConsole):
 
         if 'libedit' in rldoc:
             if self.debug:
-                print "osx libedit readline style readline"
+                print("osx libedit readline style readline")
             readline.parse_and_bind("bind ^I rl_complete")
             readline.parse_and_bind("bind ^R em-inc-search-prev")
         if 'readline.py' in rlfile:
             if self.debug:
-                print "pyreadline style readline"
+                print("pyreadline style readline")
             readline.parse_and_bind("tab: complete")
         elif rldoc:
             if self.debug:
-                print "normal readline style readline"
+                print("normal readline style readline")
             readline.parse_and_bind("tab: complete")
         elif self.debug:
-            print "readline module {} is unknown, methods: {}".format(
-                readline, dir(readline),
-            )
+            m = "readline module {} is unknown, methods: {}".format
+            print(m(readline, dir(readline)))
 
     def setup_atexit_write_history(self, histfile):
+        """Setup write of history file atexit."""
         readline = self.readline
         rl_has_history = hasattr(readline, "write_history_file")
         if rl_has_history:
             atexit = self.atexit
             atexit.register(self.write_history, histfile)
         elif self.debug:
-            print "readline module {} has no write_history_file(), methods: {}".format(
-                readline, dir(readline),
-            )
+            print("readline module {} has no write_history_file(), methods: {}".format(readline, dir(readline)))
 
     def read_history(self, histfile):
+        """Read of history file."""
         readline = self.readline
         rl_has_history = hasattr(readline, "read_history_file")
         if rl_has_history:
@@ -131,61 +135,62 @@ class HistoryConsole(code.InteractiveConsole):
                 # the file doesn't exist/can't be accessed
                 pass
             except Exception as e:
-                print "Unable to read history file '{}', exception: '{}'".format(histfile, e)
+                print("Unable to read history file '{}', exception: '{}'".format(histfile, e))
         elif self.debug:
-            print "readline module {} has no read_history_file(), methods: {}".format(
-                readline, dir(readline),
-            )
+            print("readline module {} has no read_history_file(), methods: {}".format(readline, dir(readline)))
 
     def write_history(self, histfile):
+        """Write of history file."""
         readline = self.readline
         rl_has_history = hasattr(readline, "write_history_file")
 
         if rl_has_history:
             try:
-                readline.write_history_file(histfile) # noqa
+                readline.write_history_file(histfile)  # noqa
             except Exception as e:
-                print "Unable to write history file '{}', exception: '{}'".format(histfile, e)
+                print("Unable to write history file '{}', exception: '{}'".format(histfile, e))
         elif self.debug:
-            print "readline module {} has no write_history_file(), methods: {}".format(
-                readline, dir(readline),
-            )
+            print("readline module {} has no write_history_file(), methods: {}".format(readline, dir(readline)))
 
 
 class CustomArgFormat(A1, A2):
     """Multiple inheritance Formatter class for :class:`argparse.ArgumentParser`.
 
-    If a :class:`argparse.ArgumentParser` class uses this as it's Formatter class, it will show the defaults for each argument in the `help` output
+    If a :class:`argparse.ArgumentParser` class uses this as it's Formatter class,
+    it will show the defaults for each argument in the `help` output.
     """
-    pass
 
 
 class CustomArgParse(argparse.ArgumentParser):
-    """Custom :class:`argparse.ArgumentParser` class which does a number of things:
+    """Custom :class:`argparse.ArgumentParser` class.
 
-        * Uses :class:`pytan.utils.CustomArgFormat` as it's Formatter class, if none was passed in
-        * Prints help if there is an error
-        * Prints the help for any subparsers that exist
+    * Uses :class:`pytan.utils.CustomArgFormat` as it's Formatter class, if none was passed in
+    * Prints help if there is an error
+    * Prints the help for any subparsers that exist
     """
+
     def __init__(self, *args, **kwargs):
+        """Constructor."""
         if 'formatter_class' not in kwargs:
             kwargs['formatter_class'] = CustomArgFormat
         # print kwargs
         argparse.ArgumentParser.__init__(self, *args, **kwargs)
 
     def error(self, message):
+        """Custom error method."""
         self.print_help()
         print('ERROR:{}:{}\n'.format(pname, message))
         sys.exit(2)
 
     def print_help(self, **kwargs):
+        """Custom help method."""
         super(CustomArgParse, self).print_help(**kwargs)
         subparsers_actions = [
             action for action in self._actions
             if isinstance(action, argparse._SubParsersAction)
         ]
         for subparsers_action in subparsers_actions:
-            print ""
+            print("")
             # get all subparsers and print help
             for choice, subparser in subparsers_action.choices.items():
                 # print subparser
@@ -195,8 +200,9 @@ class CustomArgParse(argparse.ArgumentParser):
 
 
 def setup_parser(desc, help=False):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts that use :mod:`pytan`. This establishes the basic arguments that are needed by all such scripts, such as:
+    """S the base :class:`pytan.utils.CustomArgParse` class for command line scripts that use :mod:`pytan`.
 
+    This establishes the basic arguments that are needed by all such scripts, such as:
         * --help
         * --username
         * --password
@@ -337,7 +343,9 @@ def setup_parser(desc, help=False):
 
 
 def setup_parent_parser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser` and return a parser object for adding arguments to
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser` and returns a parser object for adding arguments.
     """
     parent_parser = setup_parser(desc=doc, help=False)
     parser = CustomArgParse(description=doc, parents=[parent_parser])
@@ -345,7 +353,10 @@ def setup_parent_parser(doc):
 
 
 def setup_write_pytan_user_config_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to write a pytan user config file.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Users :func:`pytan.utils.setup_parser`, then adds specific arguments for scripts
+    that use :mod:`pytan` to write a pytan user config file.
     """
     parser = setup_parent_parser(doc=doc)
     output_group = parser.add_argument_group('Write PyTan User Config Options')
@@ -364,7 +375,9 @@ def setup_write_pytan_user_config_argparser(doc):
 
 
 def setup_tsat_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to get objects.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to get objects.
     """
     parser = setup_parent_parser(doc=doc)
 
@@ -463,7 +476,11 @@ def setup_tsat_argparser(doc):
         action='store',
         default=None,
         dest='build_config_file',
-        help='Build a configuration file by finding all sensors that have parameters and prompting for the values, then saving the key/value pairs as a JSON file that can be used by --config_file',
+        help=(
+            'Build a configuration file by finding all sensors that have parameters and prompting '
+            'for the values, then saving the key/value pairs as a JSON file that can be used by '
+            '--config_file'
+        ),
     )
     arggroup.add_argument(
         '--config_file',
@@ -481,7 +498,11 @@ def setup_tsat_argparser(doc):
         nargs=2,
         dest='globalparams',
         default=[],
-        help='Global parameters in the format of "KEY" "VALUE" -- if any sensor uses "KEY" as a parameter name, then "VALUE" will be used for that sensors parameter',
+        help=(
+            'Global parameters in the format of "KEY" "VALUE"'
+            ' -- if any sensor uses "KEY" as a parameter name, '
+            'then "VALUE" will be used for that sensors parameter',
+        ),
     )
 
     arggroup = parser.add_argument_group('Question Asking Options')
@@ -523,7 +544,10 @@ def setup_tsat_argparser(doc):
         action='store',
         default=0,
         dest='override_timeout_secs',
-        help='If supplied and not 0, instead of using the question expiration timestamp as the timeout, timeout after N seconds',
+        help=(
+            'If supplied and not 0, instead of using the question expiration timestamp'
+            ' as the timeout, timeout after N seconds',
+        ),
     )
     arggroup.add_argument(
         '--polling_secs',
@@ -541,7 +565,10 @@ def setup_tsat_argparser(doc):
         action='store',
         default=0,
         dest='override_estimated_total',
-        help='If supplied and not 0, use this as the estimated total number of systems instead of what Tanium Platform reports',
+        help=(
+            'If supplied and not 0, use this as the estimated total number of systems '
+            'instead of what Tanium Platform reports'
+        ),
     )
     arggroup.add_argument(
         '--force_passed_done_count',
@@ -550,10 +577,15 @@ def setup_tsat_argparser(doc):
         action='store',
         default=0,
         dest='force_passed_done_count',
-        help='If supplied and not 0, when this number of systems have passed the right hand side of the question (the question filter), consider the question complete instead of relying the estimated total that Tanium Platform reports',
+        help=(
+            'If supplied and not 0, when this number of systems have passed the '
+            'right hand side of the question (the question filter), '
+            'consider the question complete instead of relying on the estimated total '
+            'that Tanium Platform reports'
+        ),
     )
 
-    # TODO: LATER, flush out SSE OPTIONS
+    # TODO(jeo) : LATER, flush out SSE OPTIONS
 
     # arggroup_name = 'Server Side Export Options'
     # arggroup = parser.add_argument_group(arggroup_name)
@@ -675,7 +707,11 @@ def setup_tsat_argparser(doc):
         dest='expand_grouped_columns',
         default=argparse.SUPPRESS,
         required=False,
-        help='If --no_sse and --export_format = csv, Expand multi-line cells into their own rows that have sensor correlated columns in the new rows'
+        help=(
+            'If --no_sse and --export_format = csv, '
+            'Expand multi-line cells into their own rows '
+            'that have sensor correlated columns in the new rows'
+        ),
     )
     group.add_argument(
         '--no-columns',
@@ -735,13 +771,18 @@ def setup_tsat_argparser(doc):
         action='store_true',
         default=False,
         dest='show_sensors',
-        help='Print a list of all valid sensor names, their categories, their platforms, and their parameters (does not run sensors)',
+        help=(
+            'Print a list of all valid sensor names, their categories, '
+            'their platforms, and their parameters (does not run sensors)'
+        ),
     )
     return parser
 
 
 def setup_get_object_argparser(obj, doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to get objects.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to get objects.
     """
     parser = setup_parent_parser(doc=doc)
     arggroup_name = 'Get {} Options'.format(obj.replace('_', ' ').capitalize())
@@ -781,7 +822,10 @@ def setup_get_object_argparser(obj, doc):
 
 
 def setup_print_server_info_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to print sensor info.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for
+    scripts that use :mod:`pytan` to print sensor info.
     """
     parser = setup_parent_parser(doc=doc)
     output_group = parser.add_argument_group('Output Options')
@@ -798,7 +842,10 @@ def setup_print_server_info_argparser(doc):
 
 
 def setup_print_sensors_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to print server info.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts
+    that use :mod:`pytan` to print server info.
     """
     parser = setup_get_object_argparser(obj='sensor', doc=__doc__)
     output_group = parser.add_argument_group('Output Options')
@@ -846,7 +893,10 @@ def setup_print_sensors_argparser(doc):
 
 
 def setup_create_sensor_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to create a sensor.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts
+    that use :mod:`pytan` to create a sensor.
     """
     parser = setup_parser(desc=doc, help=True)
     arggroup_name = 'Create Sensor Options'
@@ -864,7 +914,10 @@ def setup_create_sensor_argparser(doc):
 
 
 def setup_create_group_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to create a group.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts
+    that use :mod:`pytan` to create a group.
     """
     parser = setup_parser(desc=doc, help=True)
     arggroup_name = 'Create Group Options'
@@ -922,7 +975,10 @@ def setup_create_group_argparser(doc):
 
 
 def setup_create_whitelisted_url_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to create a whitelisted_url.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts
+    that use :mod:`pytan` to create a whitelisted_url.
     """
     parser = setup_parser(desc=doc, help=True)
     arggroup_name = 'Create Whitelisted URL Options'
@@ -971,7 +1027,10 @@ def setup_create_whitelisted_url_argparser(doc):
 
 
 def setup_create_package_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to create a package.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts
+    that use :mod:`pytan` to create a package.
     """
     parser = setup_parser(desc=doc, help=True)
     arggroup_name = 'Create Package Options'
@@ -1101,15 +1160,20 @@ def setup_create_package_argparser(doc):
 
 
 def setup_pytan_shell_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to create a python shell.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts
+    that use :mod:`pytan` to create a python shell.
     """
     parser = setup_parser(desc=doc, help=True)
     return parser
 
 
 def setup_get_session_argparser(doc):
-    """Method to setup the base :clas:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`,then add specific
-        arguments for scripts that use :mod:`pytan` to create a tanium session.
+    """Setup the base :clas:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`,then adds specific
+    arguments for scripts that use :mod:`pytan` to create a tanium session.
     """
     parser = setup_parser(desc=doc, help=True)
     arggroup_name = 'Get Session Options'
@@ -1128,8 +1192,11 @@ def setup_get_session_argparser(doc):
 
 
 def setup_close_session_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`,then add specific
-        arguments for scripts that use :mod:`pytan` to close open tanium sessions.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`,then add specific
+        arguments for scripts
+        that use :mod:`pytan` to close open tanium sessions.
     """
     parser = setup_parser(desc=doc, help=True)
     arggroup_name = 'Close Session Optipons'
@@ -1148,7 +1215,10 @@ def setup_close_session_argparser(doc):
 
 
 def setup_create_user_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to create a user.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts
+    that use :mod:`pytan` to create a user.
     """
     parser = setup_parser(desc=doc, help=True)
     arggroup_name = 'Create User Options'
@@ -1208,7 +1278,10 @@ def setup_create_user_argparser(doc):
 
 
 def setup_create_json_object_argparser(obj, doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to create objects from json files.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts
+    that use :mod:`pytan` to create objects from json files.
     """
     parser = setup_parent_parser(doc=doc)
     arggroup_name = 'Create {} from JSON Options'.format(obj.replace('_', ' ').capitalize())
@@ -1226,7 +1299,10 @@ def setup_create_json_object_argparser(obj, doc):
 
 
 def setup_delete_object_argparser(obj, doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to delete objects.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts
+    that use :mod:`pytan` to delete objects.
     """
     parser = setup_parent_parser(doc=doc)
     arggroup_name = 'Delete {} Options'.format(obj.replace('_', ' ').capitalize())
@@ -1254,7 +1330,10 @@ def setup_delete_object_argparser(obj, doc):
 
 
 def setup_ask_saved_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to ask saved questions.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts
+    that use :mod:`pytan` to ask saved questions.
     """
     parser = setup_parent_parser(doc=doc)
     arggroup_name = 'Saved Question Options'
@@ -1302,7 +1381,10 @@ def setup_ask_saved_argparser(doc):
 
 
 def setup_approve_saved_action_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to approve saved actions.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts
+    that use :mod:`pytan` to approve saved actions.
     """
     parser = setup_parent_parser(doc=doc)
     arggroup_name = 'Approve Saved Action Options'
@@ -1322,7 +1404,10 @@ def setup_approve_saved_action_argparser(doc):
 
 
 def setup_stop_action_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to stop actions.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts
+    that use :mod:`pytan` to stop actions.
     """
     parser = setup_parent_parser(doc=doc)
     arggroup_name = 'Stop Action Options'
@@ -1342,7 +1427,10 @@ def setup_stop_action_argparser(doc):
 
 
 def setup_deploy_action_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to deploy actions.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts
+    that use :mod:`pytan` to deploy actions.
     """
     parser = setup_parent_parser(doc=doc)
     arggroup_name = 'Deploy Action Options'
@@ -1465,7 +1553,10 @@ def setup_deploy_action_argparser(doc):
 
 
 def setup_get_results_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to get results for questions or actions.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts
+    that use :mod:`pytan` to get results for questions or actions.
     """
     parser = setup_parent_parser(doc=doc)
     arggroup_name = 'Get Result Options'
@@ -1505,7 +1596,10 @@ def setup_get_results_argparser(doc):
 
 
 def setup_ask_parsed_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to ask parsed questions.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts
+    that use :mod:`pytan` to ask parsed questions.
     """
     parser = setup_parent_parser(doc=doc)
     arggroup_name = 'Parsed Question Options'
@@ -1527,7 +1621,11 @@ def setup_ask_parsed_argparser(doc):
         action='store',
         type=int,
         dest='picker',
-        help='The index number of the parsed results that correlates to the actual question you wish to run -- you can get this by running this once without it to print out a list of indexes',
+        help=(
+            'The index number of the parsed results that correlates '
+            'to the actual question you wish to run -- '
+            'you can get this by running this once without it to print out a list of indexes'
+        ),
     )
 
     group = arggroup.add_mutually_exclusive_group()
@@ -1554,7 +1652,10 @@ def setup_ask_parsed_argparser(doc):
 
 
 def setup_ask_manual_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to ask manual questions.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts
+    that use :mod:`pytan` to ask manual questions.
     """
     parser = setup_parent_parser(doc=doc)
     arggroup_name = 'Manual Question Options'
@@ -1651,7 +1752,9 @@ def setup_ask_manual_argparser(doc):
 
 
 def add_ask_report_argparser(parser):
-    """Method to extend a :class:`pytan.utils.CustomArgParse` class for command line scripts with arguments for scripts that need to supply export format subparsers for asking questions.
+    """Method to extend a :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Adds arguments for scripts that need to supply export format subparsers for asking questions.
     """
     parser = add_report_file_options(parser=parser)
 
@@ -1780,7 +1883,10 @@ def add_ask_report_argparser(parser):
         dest='expand_grouped_columns',
         default=argparse.SUPPRESS,
         required=False,
-        help='For export_format: csv, Expand multi-line cells into their own rows that have sensor correlated columns in the new rows'
+        help=(
+            'For export_format: csv, Expand multi-line cells into '
+            'their own rows that have sensor correlated columns in the new rows'
+        ),
     )
     group.add_argument(
         '--no-columns',
@@ -1794,7 +1900,9 @@ def add_ask_report_argparser(parser):
 
 
 def add_report_file_options(parser):
-    """Method to extend a :class:`pytan.utils.CustomArgParse` class for command line scripts with arguments for scripts that need to supply export file and directory options.
+    """Extend a :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Adds arguments for scripts that need to supply export file and directory options.
     """
     opt_group = parser.add_argument_group('Report File Options')
     opt_group.add_argument(
@@ -1819,7 +1927,9 @@ def add_report_file_options(parser):
 
 
 def add_get_object_report_argparser(parser):
-    """Method to extend a :class:`pytan.utils.CustomArgParse` class for command line scripts with arguments for scripts that need to supply export format subparsers for getting objects.
+    """Method to extend a :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Adds arguments for scripts that need to supply export format subparsers for getting objects.
     """
     parser = add_report_file_options(parser)
     arggroup_name = 'Export Options'
@@ -1875,7 +1985,11 @@ def add_get_object_report_argparser(parser):
         dest='explode_json_string_values',
         default=argparse.SUPPRESS,
         required=False,
-        help='Only for export_format csv or json, Only for export_format csv, Explode any embedded JSON into their own columns (default)'
+        help=(
+            'Only for export_format csv or json, '
+            'Only for export_format csv, '
+            'Explode any embedded JSON into their own columns (default)'
+        ),
     )
 
     group = arggroup.add_mutually_exclusive_group()
@@ -1918,7 +2032,10 @@ def add_get_object_report_argparser(parser):
 
 
 def setup_get_saved_question_history_argparser(doc):
-    """Method to setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts using :func:`pytan.utils.setup_parser`, then add specific arguments for scripts that use :mod:`pytan` to get saved question history.
+    """Setup the base :class:`pytan.utils.CustomArgParse` class for command line scripts.
+
+    Uses :func:`pytan.utils.setup_parser`, then add specific arguments for scripts
+    that use :mod:`pytan` to get saved question history.
     """
     parser = setup_parent_parser(doc=doc)
 
@@ -1953,7 +2070,10 @@ def setup_get_saved_question_history_argparser(doc):
         dest='all_questions',
         default=argparse.SUPPRESS,
         required=False,
-        help='Do not include details for ALL questions, only the ones associated with a given saved question via --name or --id (default)'
+        help=(
+            'Do not include details for ALL questions, '
+            'only the ones associated with a given saved question via --name or --id (default)'
+        ),
     )
 
     group.add_argument(
@@ -2004,7 +2124,7 @@ def setup_get_saved_question_history_argparser(doc):
 
 
 def process_get_saved_question_history_args(parser, handler, args):
-    """Process command line args supplied by user for getting saved question history
+    """Process command line args supplied by user for getting saved question history.
 
     Parameters
     ----------
@@ -2020,7 +2140,6 @@ def process_get_saved_question_history_args(parser, handler, args):
     response : :class:`taniumpy.object_types.base.BaseType`
         * response from :func:`pytan.handler.Handler.create_user`
     """
-
     all_questions_bool = args.__dict__.get('all_questions', False)
     empty_results_bool = args.__dict__.get('empty_results', False)
 
@@ -2036,38 +2155,36 @@ def process_get_saved_question_history_args(parser, handler, args):
         else:
             parser.error("Must supply --id or --name of saved question if not using --all_questions")
 
-        print "++ Finding saved question: {}".format(pytan.utils.jsonify(get_args))
+        print("++ Finding saved question: {}".format(pytan.utils.jsonify(get_args)))
 
         try:
             saved_question = handler.get(**get_args)[0]
         except Exception as e:
             traceback.print_exc()
-            print "\n\nError occurred: {}".format(e)
+            print("\n\nError occurred: {}".format(e))
             sys.exit(99)
 
-        print "Found Saved Question: '{}'".format(saved_question)
+        print("Found Saved Question: '{}'".format(saved_question))
 
     # get all questions
     try:
         all_questions = handler.get_all('question', include_hidden_flag=1)
     except Exception as e:
         traceback.print_exc()
-        print "\n\nError occurred: {}".format(e)
+        print("\n\nError occurred: {}".format(e))
         sys.exit(99)
 
-    print "Found {} Total Questions".format(len(all_questions))
+    print("Found {} Total Questions".format(len(all_questions)))
 
     if not all_questions_bool:
         all_questions = [
             x for x in all_questions
             if getattr(x.saved_question, 'id', '') == saved_question.id
         ]
+        m = "Found {} Questions asked for Saved_question '{}'".format
+        print(m(len(all_questions), saved_question))
 
-        print (
-            "Found {} Questions asked for Saved_question '{}'"
-        ).format(len(all_questions), saved_question)
-
-    print "Getting ResultInfo for {} Questions".format(len(all_questions))
+    print("Getting ResultInfo for {} Questions".format(len(all_questions)))
 
     # store the ResultInfo for each question as x.result_info
     [
@@ -2080,7 +2197,7 @@ def process_get_saved_question_history_args(parser, handler, args):
             x for x in all_questions
             if x.result_info.row_count
         ]
-        print "Found {} Questions that actually have data".format(len(all_questions))
+        print("Found {} Questions that actually have data".format(len(all_questions)))
 
     # flatten out saved_question.id
     [
@@ -2149,12 +2266,12 @@ def process_get_saved_question_history_args(parser, handler, args):
         report_dir=args.report_dir,
     )
 
-    print "Wrote {} bytes to report file: '{}'".format(len(all_question_csv), report_file)
+    print("Wrote {} bytes to report file: '{}'".format(len(all_question_csv), report_file))
     return report_file
 
 
 def process_create_json_object_args(parser, handler, obj, args):
-    """Process command line args supplied by user for create json object
+    """Process command line args supplied by user for create json object.
 
     Parameters
     ----------
@@ -2184,16 +2301,16 @@ def process_create_json_object_args(parser, handler, obj, args):
         response = handler.create_from_json(obj, **obj_grp_args)
     except Exception as e:
         traceback.print_exc()
-        print "\n\nError occurred: {}".format(e)
+        print("\n\nError occurred: {}".format(e))
         sys.exit(100)
     for i in response:
         obj_id = getattr(i, 'id', 'unknown')
-        print "Created item: {}, ID: {}".format(i, obj_id)
+        print("Created item: {}, ID: {}".format(i, obj_id))
     return response
 
 
 class TsatWorker(object):
-    '''no doc as of yet, push to re-write
+    """No doc as of yet, push to re-write.
 
     relies on functions in binsupport:
         * filter_filename
@@ -2201,7 +2318,8 @@ class TsatWorker(object):
         * filter_sourced_sensors
         * filter_sensors
 
-    '''
+    """
+
     DEBUG_FORMAT = (
         '[%(lineno)-5d - %(filename)20s:%(funcName)s()] %(asctime)s\n'
         '%(levelname)-8s %(name)s %(message)s'
@@ -2247,12 +2365,14 @@ class TsatWorker(object):
     PARAM_VALS = {'global': {}}
 
     def __init__(self, parser, args, handler, **kwargs):
+        """Constructor."""
         self.ARGS = args
         self.PARSER = parser
         self.HANDLER = handler
         self.MY_KWARGS = kwargs
 
     def start(self):
+        """Start of workflow."""
         self.check_help_args()
         self.check_log_format()
         self.set_log_level()
@@ -2274,6 +2394,7 @@ class TsatWorker(object):
                 self.write_final_results(reports)
 
     def handle_show_opts(self):
+        """Figure out which options to show."""
         self.sensors = self.HANDLER.get_all('sensor')
         if self.ARGS.show_platforms:
             self.show_platforms()
@@ -2283,11 +2404,12 @@ class TsatWorker(object):
             self.show_sensors()
 
     def load_parameters(self, sensor):
+        """Load parameters from a sensor as a json construct."""
         param_def = sensor.parameter_definition or {}
         if param_def:
             try:
                 param_def = json.loads(param_def)
-            except:
+            except Exception:
                 m = "Error loading JSON parameter definition for sensor {}: {}".format
                 self.mylog.error(m(sensor.name, param_def))
                 param_def = {}
@@ -2295,6 +2417,7 @@ class TsatWorker(object):
         return params
 
     def show_sensors(self):
+        """Print information out for all sensors."""
         for x in sorted(self.sensors, key=lambda x: x.category):
             platforms = parse_sensor_platforms(x)
             params = self.load_parameters(x)
@@ -2326,11 +2449,13 @@ class TsatWorker(object):
             self.mylog.info(out(sensor=x, platforms=', '.join(platforms), description=desc))
 
     def show_categories(self):
+        """Print all categories of all sensors."""
         cats = sorted(list(set([x.category for x in self.sensors if x.category])))
         cats = '\n\t'.join(cats)
         self.mylog.info("List of valid categories:\n\t{}".format(cats))
 
     def show_platforms(self):
+        """Print all platforms of all sensors."""
         all_plats = []
         for x in self.sensors:
             platforms = parse_sensor_platforms(x)
@@ -2344,17 +2469,20 @@ class TsatWorker(object):
         self.mylog.info("List of valid platforms:\n\t{}".format(all_plats))
 
     def check_help_args(self):
+        """Check if help arguments were supplied."""
         help_args = self.get_parser_args(['Help Options'])
         if any(help_args.values()):
             self.HANDLER.ask_manual(**help_args)
             raise Exception("Help option supplied!")
 
     def check_log_format(self):
+        """Determine logging setup."""
         if self.ARGS.debugformat:
             self.CON_INFO_FORMAT = self.DEBUG_FORMAT
             self.FILE_INFO_FORMAT = self.DEBUG_FORMAT
 
     def set_log_level(self):
+        """Determine logging level."""
         if self.ARGS.tsatdebug or self.ARGS.loglevel >= 4:
             log_level = logging.DEBUG
         else:
@@ -2362,7 +2490,7 @@ class TsatWorker(object):
         self.LOG_LEVEL = log_level
 
     def remove_file_log(self, logfile):
-        """Utility to remove a log file from python's logging module"""
+        """Utility to remove a log file from python's logging module."""
         self.mylog.debug('Removing file logging to: {}'.format(logfile))
         basename = os.path.basename(logfile)
         root_logger = logging.getLogger()
@@ -2373,7 +2501,7 @@ class TsatWorker(object):
                     root_logger.removeHandler(x)
 
     def add_file_log(self, logfile):
-        """Utility to add a log file from python's logging module"""
+        """Utility to add a log file from python's logging module."""
         self.remove_file_log(logfile)
         self.mylog.debug('Adding file logging to: {}'.format(logfile))
         all_loggers = pytan.utils.get_all_loggers()
@@ -2387,6 +2515,7 @@ class TsatWorker(object):
             v.propagate = False
 
     def set_mylog(self):
+        """Configure the base logger for this object."""
         logging.Formatter.converter = time.gmtime
 
         ch = logging.StreamHandler(self.CON_LOG_OUTPUT)
@@ -2403,6 +2532,7 @@ class TsatWorker(object):
         self.mylog = mylog
 
     def check_report_dir(self):
+        """Create report directory if it does not exist."""
         if not os.path.exists(self.ARGS.report_dir):
             os.makedirs(self.ARGS.report_dir)
             self.mylog.debug("Created report_dir: {}".format(self.ARGS.report_dir))
@@ -2410,6 +2540,7 @@ class TsatWorker(object):
         self.mylog.info("Using report_dir: {}".format(self.ARGS.report_dir))
 
     def set_sensors(self):
+        """Gather a list of all sensors applicable for this run."""
         sensors = self.HANDLER.get_all('sensor')
         self.mylog.info("Found {} total sensors".format(len(sensors)))
 
@@ -2453,6 +2584,7 @@ class TsatWorker(object):
         self.sensors = filtered_sensors
 
     def build_config_file(self):
+        """Build the JSON configuration file."""
         for sensor in self.sensors:
             sensor_param_defs = self.load_parameters(sensor)
 
@@ -2479,12 +2611,13 @@ class TsatWorker(object):
             fh.close()
             m = "Configuration file written to: {}".format
             self.mylog.info(m(self.ARGS.build_config_file))
-        except:
+        except Exception:
             m = "Unable to write configuration to: {}".format
             self.mylog.error(m(self.ARGS.build_config_file))
             raise
 
     def check_config_file(self):
+        """Check if config file exists and is valid."""
         cfile = self.ARGS.config_file
 
         if not cfile:
@@ -2500,7 +2633,7 @@ class TsatWorker(object):
             fh.close()
             m = "Configuration file read from: {}".format
             self.mylog.info(m(cfile))
-        except:
+        except Exception:
             m = "Configuration file unable to be read from: {}".format
             self.mylog.error(m(cfile))
             raise
@@ -2516,12 +2649,14 @@ class TsatWorker(object):
         return
 
     def add_cmdline_global_params(self):
+        """Add parameters to command line."""
         if self.ARGS.globalparams:
             cgp = dict(self.ARGS.globalparams)
             self.PARAM_VALS['global'].update(cgp)
             self.mylog.debug("Updated global parameters to: {}".format(self.PARAM_VALS['global']))
 
     def run_sensors(self):
+        """Run the sensors that have been selected."""
         if self.ARGS.build_config_file:
             m = "Not running sensors, --build_config_file was specified!".format
             self.mylog.info(m())
@@ -2566,11 +2701,13 @@ class TsatWorker(object):
         return reports
 
     def get_parser_args(self, grps):
+        """Setup the parser arguments."""
         parser_opts = get_grp_opts(parser=self.PARSER, grp_names=grps)
         p_args = {k: getattr(self.ARGS, k) for k in parser_opts}
         return p_args
 
     def param_type_prompt(self, sensor, param_def):
+        """Prompt for parameters."""
         key = param_def['key']
         typeprompt = (
             "\n"
@@ -2594,10 +2731,10 @@ class TsatWorker(object):
         param_section = None
 
         while True:
-            ptype = raw_input(typeprompt)
+            ptype = user_input(typeprompt)
             if ptype not in typemap:
                 m = "\n!! Invalid choice '{}', must be one of: {}\n".format
-                print m(ptype, ', '.join(typemap.keys()))
+                print(m(ptype, ', '.join(typemap.keys())))
                 continue
 
             if param_section == 'global':
@@ -2605,12 +2742,13 @@ class TsatWorker(object):
             else:
                 ptxt = 'sensor specific'
 
-            print "\n~~ Will store value as {}".format(ptxt)
+            print("\n~~ Will store value as {}".format(ptxt))
             param_section = typemap[ptype]
             break
         return param_section
 
-    def param_value_prompt(self, sensor, param_def, param_section=None):
+    def param_value_prompt(self, sensor, param_def, param_section=None):  # noqa
+        """Prompt for parameters."""
         key = param_def['key']
         ptxt = {
             'ptype': 'sensor specific',
@@ -2677,26 +2815,25 @@ class TsatWorker(object):
 
         param_value = None
         while True:
-            param_value = raw_input(valueprompt)
+            param_value = user_input(valueprompt)
             if not param_value:
                 if defval:
-                    print "\n~~ Using default value of: '{}'".format(defval)
+                    print("\n~~ Using default value of: '{}'".format(defval))
                     param_value = defval
                     break
 
                 if valid_values:
-                    print "\n~~ Using first valid value of: '{}'".format(valid_values[0])
+                    print("\n~~ Using first valid value of: '{}'".format(valid_values[0]))
                     param_value = valid_values[0]
                     break
 
             if valid_values and param_value not in valid_values:
                 m = "\n!! Invalid choice '{}', must be one of: {}\n".format
-                print m(param_value, valid_values)
+                print(m(param_value, valid_values))
                 continue
 
             if not param_value:
-                m = "\n!! No default value defined, must supply a value!\n".format
-                print m()
+                print("\n!! No default value defined, must supply a value!\n")
                 continue
 
             if param_value:
@@ -2709,7 +2846,8 @@ class TsatWorker(object):
 
         return param_value
 
-    def run_sensor(self, idx, sensor):
+    def run_sensor(self, idx, sensor):  # noqa
+        """Run a sensor."""
         handler = self.HANDLER
         report_info = {
             'sensor': sensor.name,
@@ -2779,7 +2917,7 @@ class TsatWorker(object):
                         param_dict[k] = v
                         m = "Evaluated key '{}' value '{}' into value '{}' for sensor: '{}'".format
                         self.mylog.info(m(k, orig_v, v, sensor.name))
-                    except:
+                    except Exception:
                         m = "Failed to evaluate key '{}' using value '{}' for sensor: '{}'".format
                         self.mylog.error(m(k, v, sensor.name))
                         raise
@@ -2847,7 +2985,7 @@ class TsatWorker(object):
         m = "-- Getting answers for sensor: '{}' {}".format
         self.mylog.info(m(sensor.name, current_count))
 
-        # TODO: LATER, flush out SSE OPTIONS
+        # TODO(jeo): LATER, flush out SSE OPTIONS
         # if self.ARGS.sse and handler.session.platform_is_6_5():
         #     grd = handler.get_result_data_sse
         #     grd_args = self.get_parser_args(['Server Side Export Options'])
@@ -2904,18 +3042,21 @@ class TsatWorker(object):
         return report_info
 
     def get_sensor_dir(self, sensor_name):
+        """Determine the directory to store results for a sensor."""
         sensor_dir = os.path.join(self.ARGS.report_dir, filter_filename(sensor_name))
         if not os.path.exists(sensor_dir):
             os.makedirs(sensor_dir)
         return sensor_dir
 
     def get_logfile_path(self, logname, logdir):
+        """Determine the path to write the logfile."""
         logfile = '{}_{}.log'.format(logname, pytan.utils.get_now())
         logfile = filter_filename(logfile)
         logfile_path = os.path.join(logdir, logfile)
         return logfile_path
 
     def write_final_results(self, reports):
+        """Write the overall results report."""
         csv_str = csvdictwriter(reports, headers=self.FINAL_REPORT_HEADERS)
         csv_file = '{}_{}.csv'.format(self.MY_NAME, pytan.utils.get_now())
         csv_file = filter_filename(csv_file)
@@ -2936,7 +3077,7 @@ class TsatWorker(object):
 
 
 def process_tsat_args(parser, handler, args):
-    """Process command line args supplied by user for tsat
+    """Process command line args supplied by user for tsat.
 
     Parameters
     ----------
@@ -2952,12 +3093,12 @@ def process_tsat_args(parser, handler, args):
         tsatworker.start()
     except Exception as e:
         traceback.print_exc()
-        print "\nError occurred: {}".format(e)
+        print("\nError occurred: {}".format(e))
         sys.exit(100)
 
 
 def process_delete_object_args(parser, handler, obj, args):
-    """Process command line args supplied by user for delete object
+    """Process command line args supplied by user for delete object.
 
     Parameters
     ----------
@@ -2986,15 +3127,15 @@ def process_delete_object_args(parser, handler, obj, args):
         response = handler.delete(**obj_grp_args)
     except Exception as e:
         traceback.print_exc()
-        print "\n\nError occurred: {}".format(e)
+        print("\n\nError occurred: {}".format(e))
         sys.exit(100)
     for i in response:
-        print "Deleted item: ", i
+        print("Deleted item: {}".format(i))
     return response
 
 
 def process_approve_saved_action_args(parser, handler, args):
-    """Process command line args supplied by user for approving a saved action
+    """Process command line args supplied by user for approving a saved action.
 
     Parameters
     ----------
@@ -3015,15 +3156,15 @@ def process_approve_saved_action_args(parser, handler, args):
         approve_action = handler.approve_saved_action(**q_args)
     except Exception as e:
         traceback.print_exc()
-        print "\n\nError occurred: {}".format(e)
+        print("\n\nError occurred: {}".format(e))
         sys.exit(99)
 
-    print "++ Saved Action ID approved successfully: {0.id!r}".format(approve_action)
+    print("++ Saved Action ID approved successfully: {0.id!r}".format(approve_action))
     return approve_action
 
 
 def process_stop_action_args(parser, handler, args):
-    """Process command line args supplied by user for stopping an action
+    """Process command line args supplied by user for stopping an action.
 
     Parameters
     ----------
@@ -3044,15 +3185,15 @@ def process_stop_action_args(parser, handler, args):
         action_stop = handler.stop_action(**q_args)
     except Exception as e:
         traceback.print_exc()
-        print "\n\nError occurred: {}".format(e)
+        print("\n\nError occurred: {}".format(e))
         sys.exit(99)
 
-    print "++ Action ID stopped successfully: {0.id!r}".format(action_stop)
+    print("++ Action ID stopped successfully: {0.id!r}".format(action_stop))
     return action_stop
 
 
 def process_get_results_args(parser, handler, args):
-    """Process command line args supplied by user for getting results
+    """Process command line args supplied by user for getting results.
 
     Parameters
     ----------
@@ -3066,13 +3207,14 @@ def process_get_results_args(parser, handler, args):
     Returns
     -------
     report_path, report_contents : tuple
-        * results from :func:`pytan.handler.Handler.export_to_report_file` on the return of :func:`pytan.handler.Handler.get_result_data`
+        * results from :func:`pytan.handler.Handler.export_to_report_file` on the return
+          of :func:`pytan.handler.Handler.get_result_data`
     """
     try:
         obj = handler.get(**args.__dict__)[0]
     except Exception as e:
         traceback.print_exc()
-        print "\n\nError occurred: {}".format(e)
+        print("\n\nError occurred: {}".format(e))
         sys.exit(99)
 
     m = "++ Found object: {}".format
@@ -3082,14 +3224,14 @@ def process_get_results_args(parser, handler, args):
         try:
             results_obj = handler.get_result_data_sse(obj=obj, **args.__dict__)
         except Exception as e:
-            print "\n\nError occurred: {}".format(e)
+            print("\n\nError occurred: {}".format(e))
             sys.exit(99)
 
     else:
         try:
             results_obj = handler.get_result_data(obj=obj, **args.__dict__)
         except Exception as e:
-            print "\n\nError occurred: {}".format(e)
+            print("\n\nError occurred: {}".format(e))
             sys.exit(99)
 
     if isinstance(results_obj, taniumpy.object_types.result_set.ResultSet):
@@ -3103,7 +3245,7 @@ def process_get_results_args(parser, handler, args):
                 )
             except Exception as e:
                 traceback.print_exc()
-                print "\n\nError occurred: {}".format(e)
+                print("\n\nError occurred: {}".format(e))
                 sys.exit(99)
 
             m = "++ Report file {!r} written with {} bytes".format
@@ -3125,7 +3267,7 @@ def process_get_results_args(parser, handler, args):
 
 
 def process_create_user_args(parser, handler, args):
-    """Process command line args supplied by user for create user object
+    """Process command line args supplied by user for create user object.
 
     Parameters
     ----------
@@ -3149,7 +3291,7 @@ def process_create_user_args(parser, handler, args):
         response = handler.create_user(**obj_grp_args)
     except Exception as e:
         traceback.print_exc()
-        print "\n\nError occurred: {}".format(e)
+        print("\n\nError occurred: {}".format(e))
         sys.exit(99)
 
     roles_txt = ', '.join([x.name for x in response.roles])
@@ -3163,7 +3305,7 @@ def process_create_user_args(parser, handler, args):
 
 
 def process_create_package_args(parser, handler, args):
-    """Process command line args supplied by user for create package object
+    """Process command line args supplied by user for create package object.
 
     Parameters
     ----------
@@ -3187,7 +3329,7 @@ def process_create_package_args(parser, handler, args):
         response = handler.create_package(**obj_grp_args)
     except Exception as e:
         traceback.print_exc()
-        print "\n\nError occurred: {}".format(e)
+        print("\n\nError occurred: {}".format(e))
         sys.exit(99)
 
     m = "New package {0.name!r} created with ID {0.id!r}, command: {0.command!r}".format
@@ -3196,7 +3338,7 @@ def process_create_package_args(parser, handler, args):
 
 
 def process_create_sensor_args(parser, handler, args):
-    """Process command line args supplied by user for create sensor object
+    """Process command line args supplied by user for create sensor object.
 
     Parameters
     ----------
@@ -3220,7 +3362,7 @@ def process_create_sensor_args(parser, handler, args):
         response = handler.create_sensor(**obj_grp_args)
     except Exception as e:
         traceback.print_exc()
-        print "\n\nError occurred: {}".format(e)
+        print("\n\nError occurred: {}".format(e))
         sys.exit(99)
 
     m = "New sensor {0.name!r} created with ID {0.id!r}".format
@@ -3229,7 +3371,7 @@ def process_create_sensor_args(parser, handler, args):
 
 
 def process_create_whitelisted_url_args(parser, handler, args):
-    """Process command line args supplied by user for create group object
+    """Process command line args supplied by user for create group object.
 
     Parameters
     ----------
@@ -3253,7 +3395,7 @@ def process_create_whitelisted_url_args(parser, handler, args):
         response = handler.create_whitelisted_url(**obj_grp_args)
     except Exception as e:
         traceback.print_exc()
-        print "\n\nError occurred: {}".format(e)
+        print("\n\nError occurred: {}".format(e))
         sys.exit(99)
 
     m = "New Whitelisted URL {0.url_regex!r} created with ID {0.id!r}".format
@@ -3262,7 +3404,7 @@ def process_create_whitelisted_url_args(parser, handler, args):
 
 
 def process_create_group_args(parser, handler, args):
-    """Process command line args supplied by user for create group object
+    """Process command line args supplied by user for create group object.
 
     Parameters
     ----------
@@ -3286,7 +3428,7 @@ def process_create_group_args(parser, handler, args):
         response = handler.create_group(**obj_grp_args)
     except Exception as e:
         traceback.print_exc()
-        print "\n\nError occurred: {}".format(e)
+        print("\n\nError occurred: {}".format(e))
         sys.exit(99)
 
     m = (
@@ -3297,7 +3439,7 @@ def process_create_group_args(parser, handler, args):
 
 
 def process_write_pytan_user_config_args(parser, handler, args):
-    """Process command line args supplied by user for writing pytan user config
+    """Process command line args supplied by user for writing pytan user config.
 
     Parameters
     ----------
@@ -3310,11 +3452,11 @@ def process_write_pytan_user_config_args(parser, handler, args):
     """
     puc = handler.write_pytan_user_config(pytan_user_config=args.file)
     m = "PyTan User config file successfully written: {} ".format
-    print m(puc)
+    print(m(puc))
 
 
 def process_print_server_info_args(parser, handler, args):
-    """Process command line args supplied by user for printing server info
+    """Process command line args supplied by user for printing server info.
 
     Parameters
     ----------
@@ -3328,14 +3470,14 @@ def process_print_server_info_args(parser, handler, args):
     si = handler.session.get_server_info()
 
     if args.json:
-        print pytan.utils.jsonify(si['diags_flat'])
+        print(pytan.utils.jsonify(si['diags_flat']))
     else:
-        print str(handler)
+        print(str(handler))
         print_obj(si['diags_flat'])
 
 
 def process_print_sensors_args(parser, handler, args):
-    """Process command line args supplied by user for printing sensors
+    """Process command line args supplied by user for printing sensors.
 
     Parameters
     ----------
@@ -3351,17 +3493,17 @@ def process_print_sensors_args(parser, handler, args):
     )
 
     real_sensors = filter_sourced_sensors(all_sensors)
-    print "Filtered out sourced sensors: {}".format(len(real_sensors))
+    print("Filtered out sourced sensors: {}".format(len(real_sensors)))
 
     filtered_sensors = filter_sensors(
         sensors=real_sensors, filter_platforms=args.platforms, filter_categories=args.categories,
     )
-    print "Filtered out sensors based on user filters: {}".format(len(filtered_sensors))
+    print("Filtered out sensors based on user filters: {}".format(len(filtered_sensors)))
 
     if args.json:
         for x in filtered_sensors:
             result = handler.export_obj(obj=x, export_format='json')
-            print "{}:\n{}".format(x, result)
+            print("{}:\n{}".format(x, result))
         sys.exit()
 
     for x in sorted(filtered_sensors, key=lambda x: x.category):
@@ -3371,8 +3513,8 @@ def process_print_sensors_args(parser, handler, args):
         if param_def:
             try:
                 param_def = json.loads(param_def)
-            except:
-                print "Error loading JSON parameter definition {}".format(param_def)
+            except Exception:
+                print("Error loading JSON parameter definition {}".format(param_def))
                 param_def = {}
 
         params = param_def.get('parameters', [])
@@ -3380,10 +3522,10 @@ def process_print_sensors_args(parser, handler, args):
             continue
 
         desc = (x.description or '').replace('\n', ' ').strip()
-        print (
+        print(
             "\n  * Sensor Name: '{0.name}', Platforms: {1}, Category: {0.category}"
         ).format(x, ', '.join(platforms))
-        print "  * Description: {}".format(desc)
+        print("  * Description: {}".format(desc))
 
         if args.hide_params:
             continue
@@ -3397,17 +3539,17 @@ def process_print_sensors_args(parser, handler, args):
         ]
 
         for param in params:
-            print "  * Parameter '{}':".format(param['key'])
+            print("  * Parameter '{}':".format(param['key']))
             for k, v in sorted(param.iteritems()):
                 if k in skip_attrs:
                     continue
                 if not v:
                     continue
-                print "    - '{}': {}".format(k, v)
+                print("    - '{}': {}".format(k, v))
 
 
 def process_get_object_args(parser, handler, obj, args, report=True):
-    """Process command line args supplied by user for get object
+    """Process command line args supplied by user for get object.
 
     Parameters
     ----------
@@ -3440,17 +3582,17 @@ def process_get_object_args(parser, handler, obj, args, report=True):
             response = handler.get_all(**o_dict)
         except Exception as e:
             traceback.print_exc()
-            print "\n\nError occurred: {}".format(e)
+            print("\n\nError occurred: {}".format(e))
             sys.exit(100)
     else:
         try:
             response = handler.get(**obj_grp_args)
         except Exception as e:
             traceback.print_exc()
-            print "\n\nError occurred: {}".format(e)
+            print("\n\nError occurred: {}".format(e))
             sys.exit(100)
 
-    print "Found items: ", response
+    print("Found items: {}".format(response))
 
     if report:
         report_file, result = handler.export_to_report_file(obj=response, **args.__dict__)
@@ -3462,7 +3604,7 @@ def process_get_object_args(parser, handler, obj, args, report=True):
 
 
 def process_ask_parsed_args(parser, handler, args):
-    """Process command line args supplied by user for ask parsed
+    """Process command line args supplied by user for ask parsed.
 
     Parameters
     ----------
@@ -3478,24 +3620,24 @@ def process_ask_parsed_args(parser, handler, args):
     response
         * response from :func:`pytan.handler.Handler.ask_parsed`
     """
-    # TODO: SSE FORMAT NOT BEING RECOGNIZED?
+    # TODO(jeo): SSE FORMAT NOT BEING RECOGNIZED?
     # put our query args into their own dict and remove them from all_args
     obj_grp_names = ['Parsed Question Options', 'Export Options']
     obj_grp_opts = get_grp_opts(parser=parser, grp_names=obj_grp_names)
     obj_grp_args = {k: getattr(args, k) for k in obj_grp_opts if getattr(args, k, None)}
 
-    print "++ Asking parsed question:\n{}".format(pytan.utils.jsonify(obj_grp_args))
+    print("++ Asking parsed question:\n{}".format(pytan.utils.jsonify(obj_grp_args)))
 
     try:
         response = handler.ask(qtype='parsed', **obj_grp_args)
     except Exception as e:
         traceback.print_exc()
-        print "\n\nError occurred: {}".format(e)
+        print("\n\nError occurred: {}".format(e))
         sys.exit(99)
 
     question = response['question_object']
     results = response['question_results']
-    print "++ Asked Question {0.query_text!r} ID: {0.id!r}".format(question)
+    print("++ Asked Question {0.query_text!r} ID: {0.id!r}".format(question))
 
     if results:
         try:
@@ -3503,19 +3645,19 @@ def process_ask_parsed_args(parser, handler, args):
                 obj=results, **args.__dict__
             )
         except Exception as e:
-            print "\n\nError occurred: {}".format(e)
+            print("\n\nError occurred: {}".format(e))
             sys.exit(99)
 
         m = "++ Report file {!r} written with {} bytes".format
         print(m(report_file, len(report_contents)))
     else:
-        print "++ No action results returned, run get_results.py to get the results"
+        print("++ No action results returned, run get_results.py to get the results")
 
     return response
 
 
 def process_ask_manual_args(parser, handler, args):
-    """Process command line args supplied by user for ask manual
+    """Process command line args supplied by user for ask manual.
 
     Parameters
     ----------
@@ -3537,37 +3679,37 @@ def process_ask_manual_args(parser, handler, args):
     obj_grp_args = {k: getattr(args, k) for k in obj_grp_opts}
     other_args = {a: b for a, b in args.__dict__.iteritems() if a not in obj_grp_args}
 
-    print "++ Asking manual question:\n{}".format(pytan.utils.jsonify(obj_grp_args))
+    print("++ Asking manual question:\n{}".format(pytan.utils.jsonify(obj_grp_args)))
 
     try:
         response = handler.ask(qtype='manual', **obj_grp_args)
     except Exception as e:
         traceback.print_exc()
-        print "\n\nError occurred: {}".format(e)
+        print("\n\nError occurred: {}".format(e))
         sys.exit(99)
 
     question = response['question_object']
     results = response['question_results']
-    print "++ Asked Question {0.query_text!r} ID: {0.id!r}".format(question)
+    print("++ Asked Question {0.query_text!r} ID: {0.id!r}".format(question))
 
     if results:
         try:
             report_file, report_contents = handler.export_to_report_file(obj=results, **other_args)
         except Exception as e:
             traceback.print_exc()
-            print "\n\nError occurred: {}".format(e)
+            print("\n\nError occurred: {}".format(e))
             sys.exit(99)
 
         m = "++ Report file {!r} written with {} bytes".format
         print(m(report_file, len(report_contents)))
     else:
-        print "++ No action results returned, run get_results.py to get the results"
+        print("++ No action results returned, run get_results.py to get the results")
 
     return response
 
 
 def process_deploy_action_args(parser, handler, args):
-    """Process command line args supplied by user for deploy action
+    """Process command line args supplied by user for deploy action.
 
     Parameters
     ----------
@@ -3588,23 +3730,23 @@ def process_deploy_action_args(parser, handler, args):
     obj_grp_opts = get_grp_opts(parser=parser, grp_names=obj_grp_names)
     obj_grp_args = {k: getattr(args, k) for k in obj_grp_opts}
 
-    print "++ Deploying action:\n{}".format(pytan.utils.jsonify(obj_grp_args))
+    print("++ Deploying action:\n{}".format(pytan.utils.jsonify(obj_grp_args)))
 
     try:
         response = handler.deploy_action(**obj_grp_args)
     except Exception as e:
         traceback.print_exc()
-        print "\n\nError occurred: {}".format(e)
+        print("\n\nError occurred: {}".format(e))
         sys.exit(99)
 
     action = response['action_object']
-    print "++ Deployed Action {0.name!r} ID: {0.id!r}".format(action)
-    print "++ Command used in Action: {0.package_spec.command!r}".format(action)
+    print("++ Deployed Action {0.name!r} ID: {0.id!r}".format(action))
+    print("++ Command used in Action: {0.package_spec.command!r}".format(action))
 
     if response['action_result_map']:
-        print "++ Deploy action progress results:"
+        print("++ Deploy action progress results:")
         for k, v in sorted(response['action_result_map'].iteritems()):
-            print "Total {}: {}".format(k, v['total'])
+            print("Total {}: {}".format(k, v['total']))
 
     results = response['action_results']
     if results:
@@ -3616,7 +3758,7 @@ def process_deploy_action_args(parser, handler, args):
                 obj=results, **obj_grp_args
             )
         except Exception as e:
-            print "\n\nError occurred: {}".format(e)
+            print("\n\nError occurred: {}".format(e))
             sys.exit(99)
 
         response['report_file'] = report_file
@@ -3624,9 +3766,8 @@ def process_deploy_action_args(parser, handler, args):
 
         m = "++ Deploy results written to {!r} with {} bytes".format
         print(m(report_file, len(report_contents)))
-
     else:
-        print (
+        print(
             "++ No action results returned, run get_results.py to get the results"
         )
 
@@ -3634,7 +3775,7 @@ def process_deploy_action_args(parser, handler, args):
 
 
 def process_pytan_shell_args(parser, handler, args):
-    """Process command line args supplied by user for a python shell
+    """Process command line args supplied by user for a python shell.
 
     Parameters
     ----------
@@ -3649,7 +3790,7 @@ def process_pytan_shell_args(parser, handler, args):
 
 
 def process_get_session_args(parser, handler, args):
-    """Process command line args supplied by user for getting a session
+    """Process command line args supplied by user for getting a session.
 
     Parameters
     ----------
@@ -3660,11 +3801,11 @@ def process_get_session_args(parser, handler, args):
     args : args object
         * args parsed from `parser`
     """
-    print handler.session._session_id
+    print(handler.session._session_id)
 
 
 def process_close_session_args(parser, handler, args):
-    """Process command line args supplied by user for getting a session
+    """Process command line args supplied by user for getting a session.
 
     Parameters
     ----------
@@ -3679,7 +3820,7 @@ def process_close_session_args(parser, handler, args):
 
 
 def process_ask_saved_args(parser, handler, args):
-    """Process command line args supplied by user for ask saved
+    """Process command line args supplied by user for ask saved.
 
     Parameters
     ----------
@@ -3710,24 +3851,24 @@ def process_ask_saved_args(parser, handler, args):
 
     q_args['refresh_data'] = refresh_arg
 
-    print "++ Asking saved question: {}".format(pytan.utils.jsonify(q_args))
+    print("++ Asking saved question: {}".format(pytan.utils.jsonify(q_args)))
 
     try:
         response = handler.ask(qtype='saved', **q_args)
     except Exception as e:
         traceback.print_exc()
-        print "\n\nError occurred: {}".format(e)
+        print("\n\nError occurred: {}".format(e))
         sys.exit(99)
 
     question = response['question_object']
     results = response['question_results']
-    print "++ Saved Question {0.query_text!r} ID: {0.id!r}".format(question)
+    print("++ Saved Question {0.query_text!r} ID: {0.id!r}".format(question))
 
     try:
         report_file, report_contents = handler.export_to_report_file(obj=results, **args.__dict__)
     except Exception as e:
         traceback.print_exc()
-        print "\n\nError occurred: {}".format(e)
+        print("\n\nError occurred: {}".format(e))
         sys.exit(99)
 
     response['report_file'] = report_file
@@ -3739,7 +3880,7 @@ def process_ask_saved_args(parser, handler, args):
 
 
 def process_handler_args(parser, args):
-    """Process command line args supplied by user for handler
+    """Process command line args supplied by user for handler.
 
     Parameters
     ----------
@@ -3762,15 +3903,15 @@ def process_handler_args(parser, args):
         h = pytan.Handler(**handler_args)
     except Exception as e:
         traceback.print_exc()
-        print "\n\nError occurred: {}".format(e)
+        print("\n\nError occurred: {}".format(e))
         sys.exit(99)
 
-    print str(h)
+    print(str(h))
     return h
 
 
 def get_grp_opts(parser, grp_names):
-    """Used to get arguments in `parser` that match argument group names in `grp_names`
+    """Used to get arguments in `parser` that match argument group names in `grp_names`.
 
     Parameters
     ----------
@@ -3790,8 +3931,9 @@ def get_grp_opts(parser, grp_names):
 
 
 def version_check(reqver):
-    """Allows scripts using :mod:`pytan` to validate the version of the script
-    aginst the version of :mod:`pytan`
+    """Allow scripts using :mod:`pytan` to validate the version of the script.
+
+    Validates aginst the version of :mod:`pytan`
 
     Parameters
     ----------
@@ -3815,34 +3957,33 @@ def version_check(reqver):
 
 
 def debug_list(debuglist):
-    """Utility function to print the variables for a list of objects"""
+    """Utility function to print the variables for a list of objects."""
     for x in debuglist:
         debug_obj(x)
 
 
 def debug_obj(debugobj):
-    """Utility function to print the variables for an object"""
+    """Utility function to print the variables for an object."""
     pprint.pprint(vars(debugobj))
 
 
 def introspect(obj, depth=0):
-    """Utility function to dump all info about an object"""
+    """Utility function to dump all info about an object."""
     import types
-    print "%s%s: %s\n" % (depth * "\t", obj, [
-        x for x in dir(obj) if x[:2] != "__"])
+    print("%s%s: %s\n" % (depth * "\t", obj, [x for x in dir(obj) if x[:2] != "__"]))
     depth += 1
     for x in dir(obj):
         if x[:2] == "__":
             continue
         subobj = getattr(obj, x)
-        print "%s%s: %s" % (depth * "\t", x, subobj)
+        print("%s%s: %s" % (depth * "\t", x, subobj))
         if isinstance(subobj, types.InstanceType) and dir(subobj) != []:
             introspect(subobj, depth=depth + 1)
-            print
+            print()
 
 
 def input_prompts(args):
-    """Utility function to prompt for username, `, and host if empty"""
+    """Utility function to prompt for username, `, and host if empty."""
     puc_default = os.path.expanduser(pytan.constants.PYTAN_USER_CONFIG)
     puc_kwarg = args.__dict__.get('pytan_user_config', '')
     puc = puc_kwarg or puc_default
@@ -3854,11 +3995,11 @@ def input_prompts(args):
                 puc_dict = json.load(fh)
         except Exception as e:
             m = "PyTan User Config file exists at '{}' but is not valid, Exception: {}".format
-            print m(puc, e)
+            print(m(puc, e))
 
     if not args.session_id:
         if not args.username and not puc_dict.get('username', ''):
-            username = raw_input('Tanium Username: ')
+            username = user_input('Tanium Username: ')
             args.username = username.strip()
 
         if not args.password and not puc_dict.get('password', ''):
@@ -3866,34 +4007,34 @@ def input_prompts(args):
             args.password = password.strip()
 
     if not args.host and not puc_dict.get('host', ''):
-        host = raw_input('Tanium Host: ')
+        host = user_input('Tanium Host: ')
         args.host = host.strip()
     return args
 
 
 def print_obj(d, indent=0):
-    """Pretty print a dictionary"""
+    """Pretty print a dictionary."""
     for k, v in d.iteritems():
         if pytan.utils.is_dict(v):
-            print "{}{}: \n".format('  ' * indent, k),
+            print("{}{}: \n".format('  ' * indent, k))
             print_obj(v, indent + 1)
         elif pytan.utils.is_list(v):
-            print "{}{}: ".format('  ' * indent, k)
+            print("{}{}: ".format('  ' * indent, k))
             for a in v:
                 print_obj(a, indent + 1)
         else:
-            print "{}{}: {}".format('  ' * indent, k, v)
+            print("{}{}: {}".format('  ' * indent, k, v))
 
 
 def filter_filename(filename):
-    """Utility to filter a string into a valid filename"""
+    """Utility to filter a string into a valid filename."""
     valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
     filename = ''.join(c for c in filename if c in valid_chars)
     return filename
 
 
 def remove_file_log(logfile):
-    """Utility to remove a log file from python's logging module"""
+    """Utility to remove a log file from python's logging module."""
     basename = os.path.basename(logfile)
     root_logger = logging.getLogger()
     try:
@@ -3901,12 +4042,12 @@ def remove_file_log(logfile):
             if x.name == basename:
                 mylog.info(('Stopped file logging to: {}').format(logfile))
                 root_logger.removeHandler(x)
-    except:
+    except Exception:
         pass
 
 
 def add_file_log(logfile, debug=False):
-    """Utility to add a log file from python's logging module"""
+    """Utility to add a log file from python's logging module."""
     remove_file_log(logfile)
     root_logger = logging.getLogger()
     basename = os.path.basename(logfile)
@@ -3928,25 +4069,28 @@ def add_file_log(logfile, debug=False):
 
 
 def parse_sensor_platforms(sensor):
-    """Utility to create a list of platforms for a given sensor"""
+    """Utility to create a list of platforms for a given sensor."""
     platforms = [
         q.platform for q in sensor.queries
-        if q.script
-        and 'THIS IS A STUB' not in q.script
-        and 'echo Windows Only' not in q.script
-        and 'Not a Windows Sensor' not in q.script
+        if q.script and
+        'THIS IS A STUB' not in q.script and
+        'echo Windows Only' not in q.script and
+        'Not a Windows Sensor' not in q.script
     ]
     return platforms
 
 
 def filter_sourced_sensors(sensors):
-    """Utility to filter out all sensors that have a source_id specified (i.e. they are temp sensors created by the API)"""
+    """Utility to filter out all sensors that have a source_id specified.
+
+    (i.e. they are temp sensors created by the API)
+    """
     sensors = [x for x in sensors if not x.source_id]
     return sensors
 
 
 def filter_sensors(sensors, filter_platforms=[], filter_categories=[]):
-    """Utility to filter a list of sensors for specific platforms and/or categories"""
+    """Utility to filter a list of sensors for specific platforms and/or categories."""
     if not filter_platforms and not filter_categories:
         return sorted(sensors, key=lambda x: x.category)
 
@@ -3975,7 +4119,7 @@ def filter_sensors(sensors, filter_platforms=[], filter_categories=[]):
 
 
 def get_all_headers(rows_list):
-    """Utility to get all the keys for a list of dicts"""
+    """Utility to get all the keys for a list of dicts."""
     headers = []
     for row_dict in rows_list:
         [headers.append(h) for h in row_dict.keys() if h not in headers]
@@ -3983,7 +4127,7 @@ def get_all_headers(rows_list):
 
 
 def csvdictwriter(rows_list, **kwargs):
-    """returns the rows_list (list of dicts) as a CSV string"""
+    """Return the rows_list (list of dicts) as a CSV string."""
     csv_io = io.BytesIO()
     headers = kwargs.get('headers', []) or get_all_headers(rows_list)
     writer = csv.DictWriter(

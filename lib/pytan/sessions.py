@@ -137,9 +137,17 @@ class Session(object):
         {'Strings': 'String Cache/Total String Count'},
         {'Handles': 'System Performance Info/HandleCount'},
         {'Processes': 'System Performance Info/ProcessCount'},
-        {'Memory Available': 'percentage(System Performance Info/PhysicalAvailable,System Performance Info/PhysicalTotal)'},
+        {
+            'Memory Available': (
+                'percentage(System Performance Info/PhysicalAvailable,'
+                'System Performance Info/PhysicalTotal)'
+            )
+        },
     ]
-    """list of dictionaries with the key being the section of info.json to print info from, and the value being the item with in that section to print the value"""
+    """list of dictionaries with:
+    the key being the section of info.json to print info from
+    the value being the item with in that section to print the value
+    """
 
     RECORD_ALL_REQUESTS = False
     """Controls whether each requests response object is appended to the self.ALL_REQUESTS_RESPONSES list"""
@@ -178,7 +186,9 @@ class Session(object):
     """version string of server, will be updated when get_server_version() is called"""
 
     force_server_version = ''
-    """In the case where the user wants to have pytan act as if the server is a specific version, regardless of what server_version is."""
+    """In the case where the user wants to have pytan act as if the server is a specific version,
+    regardless of what server_version is.
+    """
 
     def __init__(self, host, port=443, **kwargs):
         """Constructor."""
@@ -464,7 +474,9 @@ class Session(object):
         self._start_stats_thread(**kwargs)
 
     def find(self, obj, **kwargs):
-        """Create and send a GetObject XML Request body from `object_type` and parses the response into an appropriate :mod:`taniumpy` object.
+        """Create and send a GetObject XML Request body from `object_type`.
+
+        Parses the response into an appropriate :mod:`taniumpy` object.
 
         Parameters
         ----------
@@ -485,7 +497,9 @@ class Session(object):
         return obj
 
     def save(self, obj, **kwargs):
-        """Create and send a UpdateObject XML Request body from `obj` and parses the response into an appropriate :mod:`taniumpy` object.
+        """Create and send a UpdateObject XML Request body from `obj`.
+
+        Parses the response into an appropriate :mod:`taniumpy` object.
 
         Parameters
         ----------
@@ -506,7 +520,9 @@ class Session(object):
         return obj
 
     def add(self, obj, **kwargs):
-        """Create and send a AddObject XML Request body from `obj` and parses the response into an appropriate :mod:`taniumpy` object.
+        """Create and send a AddObject XML Request body from `obj`.
+
+        Parses the response into an appropriate :mod:`taniumpy` object.
 
         Parameters
         ----------
@@ -527,7 +543,9 @@ class Session(object):
         return obj
 
     def delete(self, obj, **kwargs):
-        """Create and send a DeleteObject XML Request body from `obj` and parses the response into an appropriate :mod:`taniumpy` object.
+        """Create and send a DeleteObject XML Request body from `obj`.
+
+        Parses the response into an appropriate :mod:`taniumpy` object.
 
         Parameters
         ----------
@@ -548,7 +566,9 @@ class Session(object):
         return obj
 
     def run_plugin(self, obj, **kwargs):
-        """Create and send a RunPlugin XML Request body from `obj` and parses the response into an appropriate :mod:`taniumpy` object.
+        """Create and send a RunPlugin XML Request body from `obj`.
+
+        Parses the response into an appropriate :mod:`taniumpy` object.
 
         Parameters
         ----------
@@ -569,7 +589,9 @@ class Session(object):
         return obj
 
     def get_result_info(self, obj, **kwargs):
-        """Create and send a GetResultInfo XML Request body from `obj` and parses the response into an appropriate :mod:`taniumpy` object.
+        """Create and send a GetResultInfo XML Request body from `obj`.
+
+        Parses the response into an appropriate :mod:`taniumpy` object.
 
         Parameters
         ----------
@@ -596,7 +618,9 @@ class Session(object):
         return obj
 
     def get_result_data(self, obj, **kwargs):
-        """Create and send a GetResultData XML Request body from `obj` and parses the response into an appropriate :mod:`taniumpy` object.
+        """Create and send a GetResultData XML Request body from `obj`.
+
+        Parses the response into an appropriate :mod:`taniumpy` object.
 
         Parameters
         ----------
@@ -623,7 +647,9 @@ class Session(object):
         return obj
 
     def get_result_data_sse(self, obj, **kwargs):
-        """Create and send a GetResultData XML Request body that starts a server side export from `obj` and parses the response for an export_id.
+        """Create and send a GetResultData XML Request body.
+
+        Starts a server side export from `obj` and parses the response for an export_id.
 
         Parameters
         ----------
@@ -669,7 +695,8 @@ class Session(object):
 
         See Also
         --------
-        :func:`pytan.sessions.Session._flatten_server_info` : method to flatten the dictionary received from info.json into a python friendly format
+        :func:`pytan.sessions.Session._flatten_server_info` :
+          method to flatten the dictionary received from info.json into a python friendly format
 
         Notes
         -----
@@ -804,7 +831,10 @@ class Session(object):
         return stats_text
 
     def enable_stats_loop(self, sleep=None):
-        """Enable the stats loop thread, which will print out the results of :func:`pytan.sessions.Session.get_server_stats` every :data:`pytan.sessions.Session.STATS_LOOP_SLEEP_SEC`.
+        """Enable the stats loop thread.
+
+        Will print out the results of :func:`pytan.sessions.Session.get_server_stats`
+        every :data:`pytan.sessions.Session.STATS_LOOP_SLEEP_SEC`.
 
         Parameters
         ----------
@@ -813,14 +843,16 @@ class Session(object):
 
         See Also
         --------
-        :func:`pytan.sessions.Session._stats_loop` : method started as a thread which checks self.STATS_LOOP_ENABLED before running :func:`pytan.sessions.Session.get_server_stats`
+        :func:`pytan.sessions.Session._stats_loop` :
+          method started as a thread which checks self.STATS_LOOP_ENABLED
+          before running :func:`pytan.sessions.Session.get_server_stats`
         """
         self.STATS_LOOP_ENABLED = True
         if isinstance(sleep, int):
             self.STATS_LOOP_SLEEP_SEC = sleep
 
     def disable_stats_loop(self, sleep=None):
-        """Disable the stats loop thread, which will print out the results of :func:`pytan.sessions.Session.get_server_stats` every :data:`pytan.sessions.Session.STATS_LOOP_SLEEP_SEC`.
+        """Disable the stats loop thread.
 
         Parameters
         ----------
@@ -829,14 +861,19 @@ class Session(object):
 
         See Also
         --------
-        :func:`pytan.sessions.Session._stats_loop` : method started as a thread which checks self.STATS_LOOP_ENABLED before running :func:`pytan.sessions.Session.get_server_stats`
+        :func:`pytan.sessions.Session._stats_loop` :
+          method started as a thread which checks self.STATS_LOOP_ENABLED
+          before running :func:`pytan.sessions.Session.get_server_stats`
         """
         self.STATS_LOOP_ENABLED = False
         if isinstance(sleep, int):
             self.STATS_LOOP_SLEEP_SEC = sleep
 
     def http_get(self, url, **kwargs):
-        """An authenticated HTTP GET method. It will always forcibly use the authentication credentials that are stored in the current object when performing an HTTP GET.
+        """An authenticated HTTP GET method.
+
+        It will always forcibly use the authentication credentials that are stored
+        in the current object when performing an HTTP GET.
 
         Parameters
         ----------
@@ -930,7 +967,10 @@ class Session(object):
         return body
 
     def http_post(self, **kwargs):
-        """An authenticated HTTP POST method. It will always forcibly use the authentication credentials that are stored in the current object when performing an HTTP POST.
+        """An authenticated HTTP POST method.
+
+        It will always forcibly use the authentication credentials that
+        are stored in the current object when performing an HTTP POST.
 
         Parameters
         ----------
@@ -1070,8 +1110,10 @@ class Session(object):
             * False: When XML cleaning the response_body, disable logging messages about invalid/restricted matches
         log_bad_characters : bool, optional
             * default: False
-            * False: When XML cleaning the response_body, disable logging messages about the actual characters that were invalid/restricted
-            * True: When XML cleaning the response_body, enable logging messages about the actual characters that were invalid/restricted
+            * False: When XML cleaning the response_body,
+              disable logging messages about the actual characters that were invalid/restricted
+            * True: When XML cleaning the response_body,
+              enable logging messages about the actual characters that were invalid/restricted
 
         Returns
         -------
@@ -1181,8 +1223,10 @@ class Session(object):
             * False: When XML cleaning the response_body, disable logging messages about invalid/restricted matches
         log_bad_characters : bool, optional
             * default: False
-            * False: When XML cleaning the response_body, disable logging messages about the actual characters that were invalid/restricted
-            * True: When XML cleaning the response_body, enable logging messages about the actual characters that were invalid/restricted
+            * False: When XML cleaning the response_body,
+              disable logging messages about the actual characters that were invalid/restricted
+            * True: When XML cleaning the response_body,
+              enable logging messages about the actual characters that were invalid/restricted
 
         Returns
         -------
@@ -1261,7 +1305,9 @@ class Session(object):
         return response_body
 
     def _replace_auth(self, headers):
-        """Utility method for removing username, password, and/or session from supplied headers and replacing them with the current objects session or username and password.
+        """Utility method for removing username, password, and/or session from supplied headers.
+
+        Replaces them with the current objects session or username and password.
 
         Parameters
         ----------
@@ -1313,7 +1359,10 @@ class Session(object):
         return full_url
 
     def _clean_headers(self, headers=None):
-        """Utility method for getting the headers for the current request, combining them with the session headers used for every request, and obfuscating the value of any 'password' header.
+        """Utility method for getting the headers for the current request.
+
+        Combines them with the session headers used for every request,
+        and obfuscating the value of any 'password' header.
 
         Parameters
         ----------
@@ -1364,7 +1413,10 @@ class Session(object):
         return ret
 
     def _stats_loop(self, **kwargs):
-        """Utility method for logging server stats via :func:`pytan.sessions.Session.get_server_stats` every self.STATS_LOOP_SLEEP_SEC."""
+        """Utility method for logging server stats via :func:`pytan.sessions.Session.get_server_stats`.
+
+        Waits self.STATS_LOOP_SLEEP_SEC for each loop.
+        """
         while True:
             if self.STATS_LOOP_ENABLED:
                 server_stats = self.get_server_stats(**kwargs)
@@ -1410,7 +1462,10 @@ class Session(object):
         return "{0:.2f}%".format(f)
 
     def _find_stat_target(self, target, diags):
-        """Utility method for finding a target in info.json and returning the value, optionally performing a percentage calculation on two values if the target[0] starts with percentage(.
+        """Utility method for finding a target in info.json.
+
+        Returns the value, optionally performing a percentage calculation on two values
+        if the target[0] starts with 'percentage('.
 
         Parameters
         ----------
@@ -1424,7 +1479,8 @@ class Session(object):
         -------
         dict
             * label : same as provided in `target` index0 (label)
-            * result : value resolved from :func:`pytan.sessions.Session._resolve_stat_target` for `target` index1 (search_path)
+            * result : value resolved from :func:`pytan.sessions.Session._resolve_stat_target`
+              for `target` index1 (search_path)
         """
         try:
             label, search_path = target.items()[0]
@@ -1478,7 +1534,8 @@ class Session(object):
         object_list : str
             * XML string to use in object list node when building template
         kwargs : dict, optional
-            * any number of attributes that can be set via :class:`taniumpy.object_types.options.Options` that control the servers response.
+            * any number of attributes that can be set via :class:`taniumpy.object_types.options.Options`
+              that control the servers response.
         log_options : bool, optional
             * default: False
             * False: Do not print messages setting attributes in Options from keys in kwargs
@@ -1515,7 +1572,8 @@ class Session(object):
         obj : :class:`taniumpy.object_types.base.BaseType`
             * object to convert into XML
         kwargs : dict, optional
-            * any number of attributes that can be set via :class:`taniumpy.object_types.options.Options` that control the servers response.
+            * any number of attributes that can be set via :class:`taniumpy.object_types.options.Options`
+              that control the servers response.
 
         Returns
         -------
@@ -1538,7 +1596,8 @@ class Session(object):
         obj : :class:`taniumpy.object_types.base.BaseType`
             * object to convert into XML
         kwargs : dict, optional
-            * any number of attributes that can be set via :class:`taniumpy.object_types.options.Options` that control the servers response.
+            * any number of attributes that can be set via :class:`taniumpy.object_types.options.Options`
+              that control the servers response.
 
         Returns
         -------
@@ -1561,7 +1620,8 @@ class Session(object):
         obj : :class:`taniumpy.object_types.base.BaseType`
             * object to convert into XML
         kwargs : dict, optional
-            * any number of attributes that can be set via :class:`taniumpy.object_types.options.Options` that control the servers response.
+            * any number of attributes that can be set via :class:`taniumpy.object_types.options.Options`
+              that control the servers response.
 
         Returns
         -------
@@ -1584,7 +1644,8 @@ class Session(object):
         obj : :class:`taniumpy.object_types.base.BaseType`
             * object to convert into XML
         kwargs : dict, optional
-            * any number of attributes that can be set via :class:`taniumpy.object_types.options.Options` that control the servers response.
+            * any number of attributes that can be set via :class:`taniumpy.object_types.options.Options`
+              that control the servers response.
 
         Returns
         -------
@@ -1607,7 +1668,8 @@ class Session(object):
         obj : :class:`taniumpy.object_types.base.BaseType`
             * object to convert into XML
         kwargs : dict, optional
-            * any number of attributes that can be set via :class:`taniumpy.object_types.options.Options` that control the servers response.
+            * any number of attributes that can be set via :class:`taniumpy.object_types.options.Options`
+              that control the servers response.
 
         Returns
         -------
@@ -1630,7 +1692,8 @@ class Session(object):
         obj : :class:`taniumpy.object_types.base.BaseType`
             * object to convert into XML
         kwargs : dict, optional
-            * any number of attributes that can be set via :class:`taniumpy.object_types.options.Options` that control the servers response.
+            * any number of attributes that can be set via :class:`taniumpy.object_types.options.Options`
+              that control the servers response.
 
         Returns
         -------
@@ -1657,7 +1720,8 @@ class Session(object):
         obj : :class:`taniumpy.object_types.base.BaseType`
             * object to convert into XML
         kwargs : dict, optional
-            * any number of attributes that can be set via :class:`taniumpy.object_types.options.Options` that control the servers response.
+            * any number of attributes that can be set via :class:`taniumpy.object_types.options.Options`
+              that control the servers response.
 
         Returns
         -------
@@ -1700,7 +1764,8 @@ class Session(object):
 
         Notes
         -----
-            * Using regex is WAY faster than ElementTree chewing the body in and out, this matters a LOT on LARGE return bodies
+            * Using regex is WAY faster than ElementTree chewing the body in and out,
+              this matters a LOT on LARGE return bodies
         """
         regex_txt = self.ELEMENT_RE_TXT.format(element)
         regex = re.compile(regex_txt, re.IGNORECASE | re.DOTALL)
@@ -1750,7 +1815,8 @@ class Session(object):
     def _get_response(self, request_body, **kwargs):
         """A wrapper around :func:`pytan.sessions.Session.http_post` for SOAP XML requests and responses.
 
-        This method will update self.session_id if the response contains a different session_id than what is currently in this object.
+        This method will update self.session_id if the response contains a different session_id than what
+        is currently in this object.
 
         Parameters
         ----------
