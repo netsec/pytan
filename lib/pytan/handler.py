@@ -3018,6 +3018,23 @@ class Handler(object):
             defs=action_filter_defs, pytan_help=h, **clean_kwargs
         )
 
+        # MOVED HERE FOR 2.2.3, allows package parameter validation pre run=False!
+        # BUILD THE PACKAGE OBJECT TO BE ADDED TO THE ACTION
+        add_package_obj = pytan.utils.copy_package_obj_for_action(obj=package_def['package_obj'])
+
+        # if source_id is specified, a new package will be created with the parameters
+        # for this action embedded into it - specifying hidden = 1 will ensure the new package
+        # is hidden
+        add_package_obj.hidden_flag = 1
+
+        param_objlist = pytan.utils.build_param_objlist(
+            obj=package_def['package_obj'],
+            user_params=package_def['params'],
+            delim='',
+            derive_def=False,
+            empty_ok=False,
+        )
+
         start_seconds_from_now = pytan.utils.get_kwargs_int(
             key='start_seconds_from_now', default=0, **clean_kwargs
         )
@@ -3109,22 +3126,6 @@ class Handler(object):
                 "Re-run this deploy action with run=True after verifying"
             ).format
             raise pytan.exceptions.RunFalse(m(report_path, len(result)))
-
-        # BUILD THE PACKAGE OBJECT TO BE ADDED TO THE ACTION
-        add_package_obj = pytan.utils.copy_package_obj_for_action(obj=package_def['package_obj'])
-
-        # if source_id is specified, a new package will be created with the parameters
-        # for this action embedded into it - specifying hidden = 1 will ensure the new package
-        # is hidden
-        add_package_obj.hidden_flag = 1
-
-        param_objlist = pytan.utils.build_param_objlist(
-            obj=package_def['package_obj'],
-            user_params=package_def['params'],
-            delim='',
-            derive_def=False,
-            empty_ok=False,
-        )
 
         if param_objlist:
             add_package_obj.source_id = package_def['package_obj'].id
