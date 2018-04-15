@@ -12,7 +12,7 @@
     "bad_host_and_non_ssl_port": {
         "args": {"host": "localhost", "port": "4433"},
         "exception": "pytan.exceptions.AuthorizationError",
-        "error_str": ".*unknown protocol"
+        "error_str": ".*"
     },
     "bad_host_and_bad_port": {
         "args": {"host": "localhost", "port": "5433"},
