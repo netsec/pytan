@@ -1,15 +1,10 @@
 #!/usr/bin/env python -ttB
-"""
-This contains unit tests for pytan.
+"""Unit tests for pytan.
 
 These unit tests do not require a connection to a Tanium server in order to run.
 """
-import sys
-
-# disable python from creating .pyc files everywhere
-sys.dont_write_bytecode = True
-
 import os
+import sys
 import unittest
 
 my_file = os.path.abspath(sys.argv[0])
@@ -21,17 +16,23 @@ path_adds = [my_dir, lib_dir]
 
 [sys.path.append(aa) for aa in path_adds if aa not in sys.path]
 
-import pytan
-import pytan.binsupport
-import taniumpy
+try:
+    import pytan
+    import pytan.binsupport
+    import taniumpy
+except Exception:
+    raise
 
 try:
     import xml.etree.cElementTree as ET
-except:
+except Exception:
     import xml.etree.ElementTree as ET
 
-# get our server connection info
-from API_INFO import SERVER_INFO
+try:
+    # get our server connection info
+    from API_INFO import SERVER_INFO
+except Exception:
+    raise
 
 # set logging for all logs in pytan to same level as loglevel
 pytan.utils.setup_console_logging()
@@ -39,13 +40,17 @@ pytan.utils.set_log_levels(SERVER_INFO["loglevel"])
 
 
 class TestDehumanizeSensorUtils(unittest.TestCase):
+    """Test."""
+
     def test_single_str(self):
+        """Test."""
         sensors = 'Sensor1'
         sensor_defs = pytan.utils.dehumanize_sensors(sensors)
         exp = [{'filter': {}, 'params': {}, 'options': {}, 'name': 'Sensor1'}]
         self.assertEquals(sensor_defs, exp)
 
     def test_single_str_with_filter(self):
+        """Test."""
         sensors = 'Sensor1, that is:.*'
         sensor_defs = pytan.utils.dehumanize_sensors(sensors)
         exp = [
@@ -63,6 +68,7 @@ class TestDehumanizeSensorUtils(unittest.TestCase):
         self.assertEquals(sensor_defs, exp)
 
     def test_single_str_complex1(self):
+        """Test."""
         sensors = (
             'Sensor1, that is:.*, opt:value_type:string, opt:ignore_case, '
             'opt:max_data_age:3600, opt:match_any_value'
@@ -89,6 +95,7 @@ class TestDehumanizeSensorUtils(unittest.TestCase):
         self.assertEquals(sensor_defs, exp)
 
     def test_single_str_complex2(self):
+        """Test."""
         sensors = (
             'Sensor1{k1=v1,k2=v2}, that is:.*, opt:value_type:string, '
             'opt:ignore_case, opt:max_data_age:3600, opt:match_any_value'
@@ -115,6 +122,7 @@ class TestDehumanizeSensorUtils(unittest.TestCase):
         self.assertEquals(sensor_defs, exp)
 
     def test_multi_list_complex(self):
+        """Test."""
         sensors = [
             'Computer Name',
             'id:1',
@@ -166,47 +174,57 @@ class TestDehumanizeSensorUtils(unittest.TestCase):
         self.assertEquals(sensor_defs, exp)
 
     def test_valid_simple_str_id_selector(self):
+        """Test."""
         sensors = 'id:1'
         sensor_defs = pytan.utils.dehumanize_sensors(sensors)
         exp = [{'filter': {}, 'params': {}, 'options': {}, 'id': '1'}]
         self.assertEquals(sensor_defs, exp)
 
     def test_valid_simple_str_hash_selector(self):
+        """Test."""
         sensors = 'hash:1'
         sensor_defs = pytan.utils.dehumanize_sensors(sensors)
         exp = [{'filter': {}, 'params': {}, 'options': {}, 'hash': '1'}]
         self.assertEquals(sensor_defs, exp)
 
     def test_valid_simple_str_name_selector(self):
+        """Test."""
         sensors = 'name:Sensor1'
         sensor_defs = pytan.utils.dehumanize_sensors(sensors)
         exp = [{'filter': {}, 'params': {}, 'options': {}, 'name': 'Sensor1'}]
         self.assertEquals(sensor_defs, exp)
 
     def test_valid_simple_list(self):
+        """Test."""
         sensors = ['Sensor1']
         sensor_defs = pytan.utils.dehumanize_sensors(sensors)
         exp = [{'filter': {}, 'params': {}, 'options': {}, 'name': 'Sensor1'}]
         self.assertEquals(sensor_defs, exp)
 
     def test_empty_args_str(self):
+        """Test."""
         e = "A string or list of strings must be supplied as 'sensors'!"
         with self.assertRaisesRegexp(pytan.exceptions.HumanParserError, e):
             pytan.utils.dehumanize_sensors('', empty_ok=False)
 
     def test_empty_args_list(self):
+        """Test."""
         e = "A string or list of strings must be supplied as 'sensors'!"
         with self.assertRaisesRegexp(pytan.exceptions.HumanParserError, e):
             pytan.utils.dehumanize_sensors([], empty_ok=False)
 
     def test_empty_args_dict(self):
+        """Test."""
         e = "A string or list of strings must be supplied as 'sensors'!"
         with self.assertRaisesRegexp(pytan.exceptions.HumanParserError, e):
             pytan.utils.dehumanize_sensors({})
 
 
 class TestDehumanizeQuestionFilterUtils(unittest.TestCase):
+    """Test."""
+
     def test_single_filter_str(self):
+        """Test."""
         question_filters = 'Sensor1, that contains:Windows'
         question_filter_defs = pytan.utils.dehumanize_question_filters(
             question_filters
@@ -224,6 +242,7 @@ class TestDehumanizeQuestionFilterUtils(unittest.TestCase):
         self.assertEquals(question_filter_defs, exp)
 
     def test_single_filter_list(self):
+        """Test."""
         question_filters = ['Sensor1, that contains:Windows']
         question_filter_defs = pytan.utils.dehumanize_question_filters(
             question_filters
@@ -241,6 +260,7 @@ class TestDehumanizeQuestionFilterUtils(unittest.TestCase):
         self.assertEquals(question_filter_defs, exp)
 
     def test_multi_filter_list(self):
+        """Test."""
         question_filters = [
             'Sensor1, that contains:Windows',
             'Sensor2, that does not contain:10.10.10.10',
@@ -269,6 +289,7 @@ class TestDehumanizeQuestionFilterUtils(unittest.TestCase):
         self.assertEquals(question_filter_defs, exp)
 
     def test_empty_filterstr(self):
+        """Test."""
         question_filters = ''
         question_filter_defs = pytan.utils.dehumanize_question_filters(
             question_filters
@@ -277,6 +298,7 @@ class TestDehumanizeQuestionFilterUtils(unittest.TestCase):
         self.assertEquals(question_filter_defs, exp)
 
     def test_empty_filterlist(self):
+        """Test."""
         question_filters = []
         question_filter_defs = pytan.utils.dehumanize_question_filters(
             question_filters
@@ -285,18 +307,21 @@ class TestDehumanizeQuestionFilterUtils(unittest.TestCase):
         self.assertEquals(question_filter_defs, exp)
 
     def test_invalid_filter1(self):
+        """Test."""
         o = 'Sensor1, that feels:funny'
         e = "Filter .* is not a valid filter!"
         with self.assertRaisesRegexp(pytan.exceptions.HumanParserError, e):
             pytan.utils.dehumanize_question_filters(o)
 
     def test_invalid_filter2(self):
+        """Test."""
         o = 'Sensor1'
         e = "Filter .* is not a valid filter!"
         with self.assertRaisesRegexp(pytan.exceptions.HumanParserError, e):
             pytan.utils.dehumanize_question_filters(o)
 
     def test_invalid_filter3(self):
+        """Test."""
         o = 'Sensor1, th'
         e = "Filter .* is not a valid filter!"
         with self.assertRaisesRegexp(pytan.exceptions.HumanParserError, e):
@@ -304,7 +329,10 @@ class TestDehumanizeQuestionFilterUtils(unittest.TestCase):
 
 
 class TestDehumanizeQuestionOptionUtils(unittest.TestCase):
+    """Test."""
+
     def test_empty_optionstr(self):
+        """Test."""
         question_options = ''
         question_option_defs = pytan.utils.dehumanize_question_options(
             question_options
@@ -313,6 +341,7 @@ class TestDehumanizeQuestionOptionUtils(unittest.TestCase):
         self.assertEquals(question_option_defs, exp)
 
     def test_empty_optionlist(self):
+        """Test."""
         question_options = []
         question_option_defs = pytan.utils.dehumanize_question_options(
             question_options
@@ -321,6 +350,7 @@ class TestDehumanizeQuestionOptionUtils(unittest.TestCase):
         self.assertEquals(question_option_defs, exp)
 
     def test_option_str(self):
+        """Test."""
         question_options = 'ignore_case'
         question_option_defs = pytan.utils.dehumanize_question_options(
             question_options
@@ -329,6 +359,7 @@ class TestDehumanizeQuestionOptionUtils(unittest.TestCase):
         self.assertEquals(question_option_defs, exp)
 
     def test_option_list_single(self):
+        """Test."""
         question_options = ['ignore_case']
         question_option_defs = pytan.utils.dehumanize_question_options(
             question_options
@@ -337,6 +368,7 @@ class TestDehumanizeQuestionOptionUtils(unittest.TestCase):
         self.assertEquals(question_option_defs, exp)
 
     def test_option_list_multi(self):
+        """Test."""
         question_options = ['ignore_case', 'and']
         question_option_defs = pytan.utils.dehumanize_question_options(
             question_options
@@ -345,6 +377,7 @@ class TestDehumanizeQuestionOptionUtils(unittest.TestCase):
         self.assertEquals(question_option_defs, exp)
 
     def test_option_list_many(self):
+        """Test."""
         question_options = [
             'ignore_case', 'and', 'value_type:string', 'max_data_age:3600',
         ]
@@ -360,6 +393,7 @@ class TestDehumanizeQuestionOptionUtils(unittest.TestCase):
         self.assertEquals(question_option_defs, exp)
 
     def test_invalid_option1(self):
+        """Test."""
         o = 'willy wonka'
         e = "Option '{}' is not a valid option!".format(o)
         with self.assertRaisesRegexp(pytan.exceptions.HumanParserError, e):
@@ -367,6 +401,7 @@ class TestDehumanizeQuestionOptionUtils(unittest.TestCase):
             pytan.utils.dehumanize_question_options(question_options)
 
     def test_invalid_option2(self):
+        """Test."""
         o = 'willy wonka'
         e = "Option '{}' is not a valid option!".format(o)
         with self.assertRaisesRegexp(pytan.exceptions.HumanParserError, e):
@@ -375,36 +410,44 @@ class TestDehumanizeQuestionOptionUtils(unittest.TestCase):
 
 
 class TestDehumanizeExtractionUtils(unittest.TestCase):
+    """Test."""
+
     def test_extract_selector(self):
+        """Test."""
         s = 'id:1 more:stuff,here'
         exp = ('1 more:stuff,here', 'id')
         self.assertEquals(pytan.utils.extract_selector(s), exp)
 
     def test_extract_selector_use_name_if_noselector(self):
+        """Test."""
         s = 'Sensor1 more:stuff,here'
         exp = ('Sensor1 more:stuff,here', 'name')
         r = pytan.utils.extract_selector(s)
         self.assertEquals(r, exp)
 
     def test_extract_params(self):
+        """Test."""
         s = 'Sensor1{k1=v1,k2=v2}, more:stuff,here'
         exp = ('Sensor1, more:stuff,here', {'k2': 'v2', 'k1': 'v1'})
         r = pytan.utils.extract_params(s)
         self.assertEquals(r, exp)
 
     def test_extract_params_noparams(self):
+        """Test."""
         s = 'Sensor1, more:stuff,here'
         exp = ('Sensor1, more:stuff,here', {})
         r = pytan.utils.extract_params(s)
         self.assertEquals(r, exp)
 
     def test_extract_options_single(self):
+        """Test."""
         s = 'Sensor1, more:stuff,here, opt:ignore_case'
         exp = ('Sensor1, more:stuff,here', {'ignore_case_flag': 1})
         r = pytan.utils.extract_options(s)
         self.assertEquals(r, exp)
 
     def test_extract_options_many(self):
+        """Test."""
         s = (
             'Sensor1, more:stuff,here, opt:ignore_case, opt:max_data_age:3600'
             ', opt:match_any_value, opt:value_type:string'
@@ -423,12 +466,14 @@ class TestDehumanizeExtractionUtils(unittest.TestCase):
         self.assertEquals(r, exp)
 
     def test_extract_options_nooptions(self):
+        """Test."""
         s = 'Sensor1, more:stuff,here'
         exp = ('Sensor1, more:stuff,here', {})
         r = pytan.utils.extract_options(s)
         self.assertEquals(r, exp)
 
     def test_extract_filter_valid(self):
+        """Test."""
         s = 'Sensor1, that is:.*'
         exp = (
             'Sensor1',
@@ -438,6 +483,7 @@ class TestDehumanizeExtractionUtils(unittest.TestCase):
         self.assertEquals(r, exp)
 
     def test_extract_filter_valid_all(self):
+        """Test."""
         for x in pytan.constants.FILTER_MAPS:
             for y in x['human']:
                 z = pytan.utils.extract_filter('Sensor1, that {}:test value'.format(y))
@@ -447,24 +493,28 @@ class TestDehumanizeExtractionUtils(unittest.TestCase):
                 self.assertIn('test value', z[1]['value'])
 
     def test_extract_filter_nofilter(self):
+        """Test."""
         s = 'Sensor1'
         exp = ('Sensor1', {})
         r = pytan.utils.extract_filter(s)
         self.assertEquals(r, exp)
 
     def test_extract_params_multiparams(self):
+        """Test."""
         s = 'Sensor1{k1=v1,k2=v2}{}, more:stuff,here'
         e = "More than one parameter \(\{\}\) passed in '.*'"
         with self.assertRaisesRegexp(pytan.exceptions.HumanParserError, e):
             pytan.utils.extract_params(s)
 
     def test_extract_params_missing_seperator(self):
+        """Test."""
         s = 'Sensor1{v1,v2}, more:stuff,here'
         e = "Parameter v1 missing key/value seperator \(=\)"
         with self.assertRaisesRegexp(pytan.exceptions.HumanParserError, e):
             pytan.utils.extract_params(s)
 
     def test_extract_options_missing_value_max_data_age(self):
+        """Test."""
         s = 'Sensor1, more:stuff,here, opt:max_data_age'
         e = (
             "Option 'max_data_age' is missing a <type 'int'> value of seconds"
@@ -474,6 +524,7 @@ class TestDehumanizeExtractionUtils(unittest.TestCase):
             pytan.utils.extract_options(s)
 
     def test_extract_options_missing_value_value_type(self):
+        """Test."""
         s = 'Sensor1, more:stuff,here, opt:value_type'
         e = (
             "Option 'value_type' is missing a <type 'str'> value of "
@@ -483,12 +534,14 @@ class TestDehumanizeExtractionUtils(unittest.TestCase):
             pytan.utils.extract_options(s)
 
     def test_extract_options_invalid_option(self):
+        """Test."""
         s = 'Sensor1, more:stuff,here, opt:invalid_option'
         e = "Option 'invalid_option' is not a valid option!"
         with self.assertRaisesRegexp(pytan.exceptions.HumanParserError, e):
             pytan.utils.extract_options(s)
 
     def test_extract_filter_invalid(self):
+        """Test."""
         s = 'Sensor1, that meets:.*'
         e = "Filter .* is not a valid filter!"
         with self.assertRaisesRegexp(pytan.exceptions.HumanParserError, e):
@@ -496,8 +549,10 @@ class TestDehumanizeExtractionUtils(unittest.TestCase):
 
 
 class TestManualSensorDefParseUtils(unittest.TestCase):
+    """Test."""
+
     def test_parse_str1(self):
-        '''simple str is parsed into list of same str'''
+        """Simple str is parsed into list of same str."""
         kwargs = {'sensor_defs': 'Sensor1'}
         r = pytan.utils.parse_defs(
             defname='sensor_defs',
@@ -510,7 +565,7 @@ class TestManualSensorDefParseUtils(unittest.TestCase):
         self.assertEquals(r, exp)
 
     def test_parse_dict_name(self):
-        '''dict with name is parsed into list of same dict'''
+        """Dict with name is parsed into list of same dict."""
         kwargs = {'sensor_defs': {'name': 'Sensor1'}}
         r = pytan.utils.parse_defs(
             defname='sensor_defs',
@@ -523,7 +578,7 @@ class TestManualSensorDefParseUtils(unittest.TestCase):
         self.assertEquals(r, exp)
 
     def test_parse_dict_id(self):
-        '''dict with id is parsed into list of same dict'''
+        """Dict with id is parsed into list of same dict."""
         kwargs = {'sensor_defs': {'id': '1'}}
         r = pytan.utils.parse_defs(
             defname='sensor_defs',
@@ -536,7 +591,7 @@ class TestManualSensorDefParseUtils(unittest.TestCase):
         self.assertEquals(r, exp)
 
     def test_parse_dict_hash(self):
-        '''dict with hash is parsed into list of same dict'''
+        """Dict with hash is parsed into list of same dict."""
         kwargs = {'sensor_defs': {'hash': '1'}}
         r = pytan.utils.parse_defs(
             defname='sensor_defs',
@@ -549,7 +604,7 @@ class TestManualSensorDefParseUtils(unittest.TestCase):
         self.assertEquals(r, exp)
 
     def test_parse_complex(self):
-        '''list with many items is parsed into same list'''
+        """List with many items is parsed into same list."""
         sensor_defs = [
             {
                 'filter': {},
@@ -602,7 +657,7 @@ class TestManualSensorDefParseUtils(unittest.TestCase):
         self.assertEquals(r, sensor_defs)
 
     def test_parse_noargs(self):
-        '''no args throws exception'''
+        """No args throws exception."""
         kwargs = {}
         e = (
             "'sensor_defs' requires a non-empty value of type: list\(\) or "
@@ -618,7 +673,7 @@ class TestManualSensorDefParseUtils(unittest.TestCase):
             )
 
     def test_parse_none(self):
-        '''args==None throws exception'''
+        """Args==None throws exception."""
         e = (
             "'sensor_defs' requires a non-empty value of type: list\(\) or "
             "str\(\) or dict\(\)"
@@ -634,7 +689,7 @@ class TestManualSensorDefParseUtils(unittest.TestCase):
             )
 
     def test_parse_emptystr(self):
-        '''args=='' throws exception'''
+        """Args=='' throws exception."""
         e = (
             "'sensor_defs' requires a non-empty value of type: list\(\) or "
             "str\(\) or dict\(\)"
@@ -650,7 +705,7 @@ class TestManualSensorDefParseUtils(unittest.TestCase):
             )
 
     def test_parse_emptylist(self):
-        '''args==[] throws exception'''
+        """Args==[] throws exception."""
         e = (
             "'sensor_defs' requires a non-empty value of type: list\(\) or "
             "str\(\) or dict\(\)"
@@ -666,7 +721,7 @@ class TestManualSensorDefParseUtils(unittest.TestCase):
             )
 
     def test_parse_emptydict(self):
-        '''args=={} throws exception'''
+        """Args=={} throws exception."""
         e = (
             "'sensor_defs' requires a non-empty value of type: list\(\) or "
             "str\(\) or dict\(\)"
@@ -683,7 +738,10 @@ class TestManualSensorDefParseUtils(unittest.TestCase):
 
 
 class TestManualQuestionFilterDefParseUtils(unittest.TestCase):
+    """Test."""
+
     def test_parse_noargs(self):
+        """Test."""
         kwargs = {}
         r = pytan.utils.parse_defs(
             defname='question_filter_defs',
@@ -694,6 +752,7 @@ class TestManualQuestionFilterDefParseUtils(unittest.TestCase):
         self.assertFalse(r)
 
     def test_parse_none(self):
+        """Test."""
         kwargs = {'question_filter_defs': None}
         r = pytan.utils.parse_defs(
             defname='question_filter_defs',
@@ -704,6 +763,7 @@ class TestManualQuestionFilterDefParseUtils(unittest.TestCase):
         self.assertFalse(r)
 
     def test_parse_emptystr(self):
+        """Test."""
         kwargs = {'question_filter_defs': ''}
         r = pytan.utils.parse_defs(
             defname='question_filter_defs',
@@ -714,6 +774,7 @@ class TestManualQuestionFilterDefParseUtils(unittest.TestCase):
         self.assertFalse(r)
 
     def test_parse_emptylist(self):
+        """Test."""
         kwargs = {'question_filter_defs': []}
         r = pytan.utils.parse_defs(
             defname='question_filter_defs',
@@ -724,6 +785,7 @@ class TestManualQuestionFilterDefParseUtils(unittest.TestCase):
         self.assertFalse(r)
 
     def test_parse_emptydict(self):
+        """Test."""
         kwargs = {'question_filter_defs': {}}
         r = pytan.utils.parse_defs(
             defname='question_filter_defs',
@@ -734,6 +796,7 @@ class TestManualQuestionFilterDefParseUtils(unittest.TestCase):
         self.assertFalse(r)
 
     def test_parse_single_filter(self):
+        """Test."""
         kwargs = {'question_filter_defs': {
             'filter': {
                 'operator': 'RegexMatch',
@@ -751,6 +814,7 @@ class TestManualQuestionFilterDefParseUtils(unittest.TestCase):
         self.assertEquals(r, [kwargs['question_filter_defs']])
 
     def test_parse_multi_filter(self):
+        """Test."""
         kwargs = {'question_filter_defs': [
             {
                 'filter': {
@@ -778,6 +842,7 @@ class TestManualQuestionFilterDefParseUtils(unittest.TestCase):
         self.assertEquals(r, kwargs['question_filter_defs'])
 
     def test_parse_str(self):
+        """Test."""
         e = (
             "Argument 'question_filter_defs' has an invalid type "
             "<type 'str'>"
@@ -793,7 +858,10 @@ class TestManualQuestionFilterDefParseUtils(unittest.TestCase):
 
 
 class TestManualQuestionOptionDefParseUtils(unittest.TestCase):
+    """Test."""
+
     def test_parse_noargs(self):
+        """Test."""
         kwargs = {}
         r = pytan.utils.parse_defs(
             defname='question_option_defs',
@@ -804,6 +872,7 @@ class TestManualQuestionOptionDefParseUtils(unittest.TestCase):
         self.assertFalse(r)
 
     def test_parse_none(self):
+        """Test."""
         kwargs = {'question_option_defs': None}
         r = pytan.utils.parse_defs(
             defname='question_option_defs',
@@ -814,6 +883,7 @@ class TestManualQuestionOptionDefParseUtils(unittest.TestCase):
         self.assertFalse(r)
 
     def test_parse_emptystr(self):
+        """Test."""
         kwargs = {'question_option_defs': ''}
         r = pytan.utils.parse_defs(
             defname='question_option_defs',
@@ -824,6 +894,7 @@ class TestManualQuestionOptionDefParseUtils(unittest.TestCase):
         self.assertFalse(r)
 
     def test_parse_emptylist(self):
+        """Test."""
         kwargs = {'question_option_defs': []}
         r = pytan.utils.parse_defs(
             defname='question_option_defs',
@@ -834,6 +905,7 @@ class TestManualQuestionOptionDefParseUtils(unittest.TestCase):
         self.assertFalse(r)
 
     def test_parse_emptydict(self):
+        """Test."""
         kwargs = {'question_option_defs': {}}
         r = pytan.utils.parse_defs(
             defname='question_option_defs',
@@ -844,6 +916,7 @@ class TestManualQuestionOptionDefParseUtils(unittest.TestCase):
         self.assertFalse(r)
 
     def test_parse_options_dict(self):
+        """Test."""
         kwargs = {'question_option_defs': {
             'all_values_flag': 0,
             'ignore_case_flag': 1,
@@ -860,6 +933,7 @@ class TestManualQuestionOptionDefParseUtils(unittest.TestCase):
         self.assertEquals(r, kwargs['question_option_defs'])
 
     def test_parse_str(self):
+        """Test."""
         e = (
             "'question_option_defs' requires a non-empty value of type:"
             " dict\(\)"
@@ -874,6 +948,7 @@ class TestManualQuestionOptionDefParseUtils(unittest.TestCase):
             )
 
     def test_parse_list(self):
+        """Test."""
         e = (
             "'question_option_defs' requires a non-empty value of type:"
             " dict\(\)"
@@ -889,11 +964,15 @@ class TestManualQuestionOptionDefParseUtils(unittest.TestCase):
 
 
 class TestManualPackageDefValidateUtils(unittest.TestCase):
+    """Test."""
+
     def test_valid1(self):
+        """Test."""
         kwargs = {'package_def': {'name': 'Package1'}}
         pytan.utils.val_package_def(**kwargs)
 
     def test_valid2(self):
+        """Test."""
         kwargs = {'package_def': {
             'name': 'Package1',
             'params': {'dirname': 'Program Files'},
@@ -901,12 +980,14 @@ class TestManualPackageDefValidateUtils(unittest.TestCase):
         pytan.utils.val_package_def(**kwargs)
 
     def test_invalid1(self):
+        """Test."""
         e = "Package definition.*missing one of id, name!"
         with self.assertRaisesRegexp(pytan.exceptions.DefinitionParserError, e):
             kwargs = {'package_def': {'NONAME': 'Package1'}}
             pytan.utils.val_package_def(**kwargs)
 
     def test_invalid2(self):
+        """Test."""
         e = "Package definition.*has more than one of id, name!"
         with self.assertRaisesRegexp(pytan.exceptions.DefinitionParserError, e):
             kwargs = {'package_def': {'name': 'test1', 'id': '2'}}
@@ -914,11 +995,15 @@ class TestManualPackageDefValidateUtils(unittest.TestCase):
 
 
 class TestManualSensorDefValidateUtils(unittest.TestCase):
+    """Test."""
+
     def test_valid1(self):
+        """Test."""
         kwargs = {'sensor_defs': [{'name': 'Sensor1'}]}
         pytan.utils.val_sensor_defs(**kwargs)
 
     def test_valid2(self):
+        """Test."""
         kwargs = {'sensor_defs': [
             {
                 'name': 'Sensor1',
@@ -932,6 +1017,7 @@ class TestManualSensorDefValidateUtils(unittest.TestCase):
         pytan.utils.val_sensor_defs(**kwargs)
 
     def test_valid3(self):
+        """Test."""
         kwargs = {'sensor_defs': [
             {
                 'name': 'Sensor1',
@@ -952,22 +1038,26 @@ class TestManualSensorDefValidateUtils(unittest.TestCase):
         pytan.utils.val_sensor_defs(**kwargs)
 
     def test_valid4(self):
+        """Test."""
         kwargs = {'sensor_defs': [{'name': 'test1', 'filter': {'n': 'k'}}]}
         pytan.utils.val_sensor_defs(**kwargs)
 
     def test_invalid1(self):
+        """Test."""
         e = "Sensor definition.*missing one of id, name, hash!"
         with self.assertRaisesRegexp(pytan.exceptions.DefinitionParserError, e):
             kwargs = {'sensor_defs': [{'NONAME': 'Sensor1'}]}
             pytan.utils.val_sensor_defs(**kwargs)
 
     def test_invalid2(self):
+        """Test."""
         e = "Sensor definition.*missing one of id, name, hash!"
         with self.assertRaisesRegexp(pytan.exceptions.DefinitionParserError, e):
             kwargs = {'sensor_defs': [{}]}
             pytan.utils.val_sensor_defs(**kwargs)
 
     def test_invalid3(self):
+        """Test."""
         e = (
             "'filter' key in definition dictionary must be a \[<type 'dict'>\]"
             ", you supplied a <type 'list'>!"
@@ -977,6 +1067,7 @@ class TestManualSensorDefValidateUtils(unittest.TestCase):
             pytan.utils.val_sensor_defs(**kwargs)
 
     def test_invalid4(self):
+        """Test."""
         e = "Sensor definition.*has more than one of id, name, hash!"
         with self.assertRaisesRegexp(pytan.exceptions.DefinitionParserError, e):
             kwargs = {'sensor_defs': [{'name': 'test1', 'id': '2'}]}
@@ -984,7 +1075,10 @@ class TestManualSensorDefValidateUtils(unittest.TestCase):
 
 
 class TestManualQuestionFilterDefValidateUtils(unittest.TestCase):
+    """Test."""
+
     def test_valid1(self):
+        """Test."""
         kwargs = {'q_filter_defs': [
             {
                 'name': 'Sensor1',
@@ -998,10 +1092,12 @@ class TestManualQuestionFilterDefValidateUtils(unittest.TestCase):
         pytan.utils.val_q_filter_defs(**kwargs)
 
     def test_valid2(self):
+        """Test."""
         kwargs = {'q_filter_defs': []}
         pytan.utils.val_q_filter_defs(**kwargs)
 
     def test_invalid1(self):
+        """Test."""
         e = "Definition.*missing 'filter' key!"
         with self.assertRaisesRegexp(pytan.exceptions.DefinitionParserError, e):
             kwargs = {'q_filter_defs': [{'name': 'Sensor1'}]}
@@ -1009,9 +1105,11 @@ class TestManualQuestionFilterDefValidateUtils(unittest.TestCase):
 
 
 class TestManualBuildObjectUtils(unittest.TestCase):
+    """Test."""
 
     @classmethod
-    def setUpClass(cls): # noqa
+    def setUpClass(cls):  # noqa
+        """Test."""
         # load in our JSON sensor object for testing
         f = os.path.join(my_dir, 'sensor_obj_with_params.json')
         cls.sensor_obj_with_params = pytan.utils.load_taniumpy_from_json(f)
@@ -1020,8 +1118,7 @@ class TestManualBuildObjectUtils(unittest.TestCase):
         cls.sensor_obj_no_params = pytan.utils.load_taniumpy_from_json(f)
 
     def test_build_selectlist_obj_noparamssensorobj_noparams(self):
-        '''builds a selectlist object using a sensor obj with no params'''
-
+        """Build a selectlist object using a sensor obj with no params."""
         sensor_defs = [
             {
                 'name': 'Fake Sensor',
@@ -1067,9 +1164,10 @@ class TestManualBuildObjectUtils(unittest.TestCase):
         self.assertFalse(hasattr(r.select[0].filter, 'ignored_option'))
 
     def test_build_selectlist_obj_noparamssensorobj_withparams(self):
-        '''builds a selectlist object using a sensor obj with no params,
-        but passing in params (which should be added as of 1.0.4)'''
+        """Build a selectlist object using a sensor obj with no params.
 
+        but passing in params (which should be added as of 1.0.4).
+        """
         sensor_defs = [
             {
                 'name': 'Fake Sensor',
@@ -1117,9 +1215,10 @@ class TestManualBuildObjectUtils(unittest.TestCase):
         self.assertFalse(hasattr(r.select[0].filter, 'ignored_option'))
 
     def test_build_selectlist_obj_withparamssensorobj_noparams(self):
-        '''builds a selectlist object using a sensor obj with 4 params
-        but not supplying any values for any of the params'''
+        """Build a selectlist object using a sensor obj with 4 params.
 
+        but not supplying any values for any of the params.
+        """
         sensor_defs = [
             {
                 'name': 'Fake Sensor',
@@ -1176,9 +1275,10 @@ class TestManualBuildObjectUtils(unittest.TestCase):
         self.assertFalse(hasattr(r.select[0].filter, 'ignored_option'))
 
     def test_build_selectlist_obj_withparamssensorobj_withparams(self):
-        '''builds a selectlist object using a sensor obj with 4 params
-        but supplying a value for only one param'''
+        """Build a selectlist object using a sensor obj with 4 params.
 
+        but supplying a value for only one param.
+        """
         sensor_defs = [
             {
                 'name': 'Fake Sensor',
@@ -1239,7 +1339,7 @@ class TestManualBuildObjectUtils(unittest.TestCase):
         self.assertFalse(hasattr(r.select[0].filter, 'ignored_option'))
 
     def test_build_group_obj(self):
-
+        """Test."""
         q_filter_defs = [
             {
                 'name': 'Fake Sensor',
@@ -1286,13 +1386,14 @@ class TestManualBuildObjectUtils(unittest.TestCase):
         self.assertFalse(hasattr(r.filters[0], 'ignored_option'))
 
     def test_build_manual_q(self):
+        """Test."""
         r = pytan.utils.build_manual_q(taniumpy.SelectList(), taniumpy.Group())
         self.assertIsInstance(r, taniumpy.Question)
         self.assertIsInstance(r.group, taniumpy.Group)
         self.assertIsInstance(r.selects, taniumpy.SelectList)
 
     def test_build_selectlist_obj_invalid_filter(self):
-
+        """Test."""
         sensor_defs = [
             {
                 'name': 'Fake Sensor',
@@ -1310,6 +1411,7 @@ class TestManualBuildObjectUtils(unittest.TestCase):
             pytan.utils.build_selectlist_obj(**kwargs)
 
     def test_build_selectlist_obj_missing_value(self):
+        """Test."""
         sensor_defs = [
             {
                 'name': 'Fake Sensor',
@@ -1327,44 +1429,59 @@ class TestManualBuildObjectUtils(unittest.TestCase):
 
 
 class TestGenericUtils(unittest.TestCase):
+    """Test."""
+
     def test_is_list(self):
+        """Test."""
         self.assertTrue(pytan.utils.is_list([]))
 
     def test_is_not_list(self):
+        """Test."""
         self.assertFalse(pytan.utils.is_list(''))
 
     def test_is_str(self):
+        """Test."""
         self.assertTrue(pytan.utils.is_str(''))
 
     def test_is_not_str(self):
+        """Test."""
         self.assertFalse(pytan.utils.is_str([]))
 
     def test_is_dict(self):
+        """Test."""
         self.assertTrue(pytan.utils.is_dict({}))
 
     def test_is_not_dict(self):
+        """Test."""
         self.assertFalse(pytan.utils.is_dict([]))
 
     def test_is_num(self):
+        """Test."""
         self.assertTrue(pytan.utils.is_num(2))
 
     def test_is_not_num(self):
+        """Test."""
         self.assertFalse(pytan.utils.is_num({}))
 
     def test_version_lower(self):
+        """Test."""
         self.assertTrue(pytan.binsupport.version_check('0.0.0'))
 
     def test_get_now(self):
+        """Test."""
         self.assertTrue(pytan.utils.get_now())
 
     def test_jsonify(self):
+        """Test."""
         exp = '{\n  "x": "d"\n}'
         self.assertEquals(pytan.utils.jsonify({'x': 'd'}), exp)
 
     def test_invalid_port(self):
+        """Test."""
         self.assertFalse(pytan.utils.port_check('localhost', 1, 0))
 
     def test_version_higher(self):
+        """Test."""
         req_ver = "9.9.9"
         e = (
             "Script and API Version mismatch.*version {}, required {}"
@@ -1373,11 +1490,13 @@ class TestGenericUtils(unittest.TestCase):
             pytan.binsupport.version_check(req_ver)
 
     def test_empty_obj(self):
+        """Test."""
         obj = taniumpy.SensorList()
         self.assertTrue(pytan.utils.empty_obj(obj))
         self.assertTrue(pytan.utils.empty_obj(''))
 
     def test_get_q_obj_map(self):
+        """Test."""
         qtype = 'saved'
         self.assertEqual(pytan.utils.get_q_obj_map(qtype), {'handler': 'ask_saved'})
 
@@ -1403,31 +1522,37 @@ class TestGenericUtils(unittest.TestCase):
             pytan.utils.get_q_obj_map(qtype)
 
     def test_load_taniumpy_file_invalid_file(self):
+        """Test."""
         f = 'invalid_file.1234'
         with self.assertRaises(pytan.exceptions.HandlerError):
             pytan.utils.load_taniumpy_from_json(f)
 
     def test_load_taniumpy_file_invalid_json(self):
+        """Test."""
         f = os.path.join(root_dir, 'doc/example_of_all_package_parameters.json')
         with self.assertRaises(pytan.exceptions.HandlerError):
             pytan.utils.load_taniumpy_from_json(f)
 
     def test_load_param_file_valid(self):
+        """Test."""
         f = os.path.join(root_dir, 'doc/example_of_all_package_parameters.json')
         z = pytan.utils.load_param_json_file(f)
         self.assertIn('ParametersArray', z)
 
     def test_load_param_file_invalid_file(self):
+        """Test."""
         f = 'invalid_file.1234'
         with self.assertRaises(pytan.exceptions.HandlerError):
             pytan.utils.load_param_json_file(f)
 
     def test_load_param_file_invalid_json(self):
+        """Test."""
         f = os.path.join(my_dir, 'sensor_obj_no_params.json')
         with self.assertRaises(pytan.exceptions.HandlerError):
             pytan.utils.load_param_json_file(f)
 
     def test_get_obj_map(self):
+        """Test."""
         obj = 'sensor'
         exp = {
             'single': 'Sensor',
@@ -1449,22 +1574,24 @@ class TestGenericUtils(unittest.TestCase):
 
 
 class TestDeserializeBadXML(unittest.TestCase):
+    """Test."""
+
     def test_bad_chars_basetype_control(self):
-        '''
-        This XML file has a number of control characters that are not valid in XML.
+        r"""Test an XML file has a number of control characters that are not valid in XML.
 
         This test validates that pytan.xml_clean.xml_cleaner() will remove all the invalid
         and restricted characters, which should allow the body to be parsed properly.
-        '''
-        '''
+
         Logging examples from xml_cleaner():
         v=open('bad_chars_basetype_control.xml').read()
         >>> pytan.xml_clean.xml_cleaner(v, show_bad_characters=True)
         XMLCleaner: Replaced 4 invalid characters that did not match the regex u'[^\t\n\r -\ud7ff\ue000-\ufffd]'
         XMLCleaner: Invalid characters found: [u'\x17', u'\x04', u'\x04', u'\x01']
-        XMLCleaner: Replaced 10 restricted characters that did not match the regex u'[\x7f-\x84\x86-\x9f\ufdd0-\ufdef]'
-        XMLCleaner: Restricted characters found: [u'\x80', u'\x80', u'\x8d', u'\x95', u'\x81', u'\x89', u'\x89', u'\x81', u'\x95', u'\x8b']
-        '''
+        XMLCleaner: Replaced 10 restricted characters that did not match the regex
+           u'[\x7f-\x84\x86-\x9f\ufdd0-\ufdef]'
+        XMLCleaner: Restricted characters found:
+          [u'\x80', u'\x80', u'\x8d', u'\x95', u'\x81', u'\x89', u'\x89', u'\x81', u'\x95', u'\x8b']
+        """
         f = 'bad_chars_basetype_control.xml'
         a = open(os.path.join(my_dir, f), 'rb+').read()
         b = pytan.xml_clean.xml_cleaner(a, log_messages=False)
@@ -1473,23 +1600,23 @@ class TestDeserializeBadXML(unittest.TestCase):
         self.assertIsInstance(c, taniumpy.SystemStatusList)
 
     def test_bad_chars_resultset_latin1(self):
-        '''
-        This XML file has some characters that are actually encoded as latin1 (as well as some
-        restricted characters).
+        r"""Test an XML file has some characters that are actually encoded as latin1.
+
+        (as well as some restricted characters).
 
         This test validates that pytan.xml_clean.xml_cleaner() will properly fall back to latin1
         for decoding the docuemnt, as well as remove all the invalid and restricted characters,
         which should allow the body to be parsed properly.
-        '''
-        '''
+
         Logging examples from xml_cleaner():
         >>> v=open('bad_chars_resultset_latin1.xml').read()
         >>> pytan.xml_clean.xml_cleaner(v, show_bad_characters=True)
         XMLCleaner: Falling back to latin1 for decoding, unable to decode as UTF-8!
         XMLCleaner: No invalid characters found
-        XMLCleaner: Replaced 2 restricted characters that did not match the regex u'[\x7f-\x84\x86-\x9f\ufdd0-\ufdef]'
+        XMLCleaner: Replaced 2 restricted characters that did not match the regex
+          u'[\x7f-\x84\x86-\x9f\ufdd0-\ufdef]'
         XMLCleaner: Restricted characters found: [u'\x93', u'\x94']
-        '''
+        """
         f = 'bad_chars_resultset_latin1.xml'
         a = open(os.path.join(my_dir, f), 'rb+').read()
         b = pytan.xml_clean.xml_cleaner(a, log_messages=False)
@@ -1501,21 +1628,20 @@ class TestDeserializeBadXML(unittest.TestCase):
         self.assertIsInstance(c, taniumpy.ResultSet)
 
     def test_bad_chars_resultset_surrogate(self):
-        '''
-        This XML file has some characters that are unpaired surrogates in unicode. Surrogates
-        (unpaired or otherwise) are not legal XML characters.
+        r"""Test an XML file has some characters that are unpaired surrogates in unicode.
+
+        Surrogates (unpaired or otherwise) are not legal XML characters.
 
         This test validates that pytan.xml_clean.xml_cleaner() will properly remove all the
         invalid and restricted characters, which should allow the body to be parsed properly.
-        '''
-        '''
+
         Logging examples from xml_cleaner():
         >>> v=open('bad_chars_resultset_surrogate.xml').read()
         >>> pytan.xml_clean.xml_cleaner(v, show_bad_characters=True)
         XMLCleaner: Replaced 1 invalid characters that did not match the regex u'[^\t\n\r -\ud7ff\ue000-\ufffd]'
         XMLCleaner: Invalid characters found: [u'\ude64']
         XMLCleaner: No restricted characters found
-        '''
+        """
         f = 'bad_chars_resultset_surrogate.xml'
         a = open(os.path.join(my_dir, f), 'rb+').read()
         b = pytan.xml_clean.xml_cleaner(a, log_messages=False)
@@ -1526,7 +1652,7 @@ class TestDeserializeBadXML(unittest.TestCase):
         self.assertTrue(c)
         self.assertIsInstance(c, taniumpy.ResultSet)
 
-'''
+"""
 # debug path for checking open file handles, ensuring
 import atexit
 
@@ -1552,7 +1678,7 @@ def get_open_fds():
     for p in proc_defs:
         print p
     return nprocs
-'''
+"""
 
 if __name__ == "__main__":
     unittest.main(
