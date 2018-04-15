@@ -236,7 +236,8 @@ class TestDehumanizeQuestionFilterUtils(unittest.TestCase):
                     'not_flag': 0,
                     'value': '.*Windows.*'
                 },
-                'name': 'Sensor1'
+                'name': 'Sensor1',
+                'params': {},
             }
         ]
         self.assertEquals(question_filter_defs, exp)
@@ -252,9 +253,10 @@ class TestDehumanizeQuestionFilterUtils(unittest.TestCase):
                 'filter': {
                     'operator': 'RegexMatch',
                     'not_flag': 0,
-                    'value': '.*Windows.*'
+                    'value': '.*Windows.*',
                 },
-                'name': 'Sensor1'
+                'name': 'Sensor1',
+                'params': {},
             }
         ]
         self.assertEquals(question_filter_defs, exp)
@@ -275,7 +277,8 @@ class TestDehumanizeQuestionFilterUtils(unittest.TestCase):
                     'not_flag': 0,
                     'value': '.*Windows.*'
                 },
-                'name': 'Sensor1'
+                'name': 'Sensor1',
+                'params': {},
             },
             {
                 'filter': {
@@ -283,7 +286,8 @@ class TestDehumanizeQuestionFilterUtils(unittest.TestCase):
                     'not_flag': 1,
                     'value': '.*10.10.10.10.*'
                 },
-                'name': 'Sensor2'
+                'name': 'Sensor2',
+                'params': {},
             }
         ]
         self.assertEquals(question_filter_defs, exp)
