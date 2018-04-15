@@ -1,6 +1,5 @@
 #!/usr/bin/env python -ttB
-"""
-This contains invalid functional tests for pytan.
+"""This contains invalid functional tests for pytan.
 
 These functional tests require a connection to a Tanium server in order to run.
 The connection info is pulled from the SERVER_INFO dictionary in test/API_INFO.py.
@@ -9,16 +8,11 @@ These tests all use :mod:`ddt`, a package that provides for data driven tests vi
 """
 from __future__ import print_function
 
-import sys
-
-# disable python from creating .pyc files everywhere
-sys.dont_write_bytecode = True
-
-import os
-import glob
-import unittest
 import copy
-import json  # noqa
+import glob
+import os
+import sys
+import unittest
 
 my_file = os.path.abspath(sys.argv[0])
 my_dir = os.path.dirname(my_file)
@@ -31,27 +25,36 @@ for aa in path_adds:
     if aa not in sys.path:
         sys.path.insert(0, aa)
 
-import pytan
-import ddt
-import threaded_http
+try:
+    import ddt
+    import pytan
+    import threaded_http
+except Exception:
+    raise
 
-# get our server connection info
-from API_INFO import SERVER_INFO
+try:
+    # get our server connection info
+    from API_INFO import SERVER_INFO
+except Exception:
+    raise
 
 # where the output files from the tests will be stored
 TEST_OUT = os.path.join(my_dir, 'TEST_OUT')
 
 
 def spew(m, l=3):
+    """Debug message printer if testlevel >= 1."""
     if SERVER_INFO["testlevel"] >= l:
         print(m, file=sys.stderr)
 
 
 @ddt.ddt
 class InvalidServerTests(unittest.TestCase):
+    """Test."""
 
     @classmethod
     def setUpClass(cls): # noqa
+        """Test."""
         cls.__http = threaded_http.threaded_http(port=4433, verbosity=SERVER_INFO["testlevel"])
         m = "{}: PyTan v'{}' against Tanium v'{}' -- Invalid Tests Starting".format
         spew(m(
@@ -62,7 +65,7 @@ class InvalidServerTests(unittest.TestCase):
 
     @ddt.file_data('ddt/ddt_invalid_connects.json')
     def test_invalid_connect(self, value):
-
+        """Test."""
         args = value['args']
         exc = eval(value['exception'])
         e = value['error_str']

@@ -1,25 +1,22 @@
 #!/usr/bin/env python
-# -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
-# ex: set tabstop=4
-# Please do not change the two lines above. See PEP 8, PEP 263.
-"""Simple HTTP server for testing purposes"""
-
+"""Simple HTTP server for testing."""
 from __future__ import print_function
 
-import sys
 import cgi
-from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
-from SocketServer import ThreadingMixIn
+import sys
 import threading
 
-# disable python from creating .pyc files everywhere
-sys.dont_write_bytecode = True
+from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+from SocketServer import ThreadingMixIn
 
 
 class CustomHTTPHandler(BaseHTTPRequestHandler):
+    """Handler."""
+
     ENABLE_LOGGING = True
 
     def do_GET(self):  # noqa
+        """Handler."""
         self.send_response(200)
         self.end_headers()
         message = threading.currentThread().getName()
@@ -28,7 +25,7 @@ class CustomHTTPHandler(BaseHTTPRequestHandler):
         return
 
     def do_POST(self):  # noqa
-        # Parse the form data posted
+        """Handler."""
         form = cgi.FieldStorage(
             fp=self.rfile,
             headers=self.headers,
@@ -65,6 +62,7 @@ class CustomHTTPHandler(BaseHTTPRequestHandler):
     # turn off logging messages so we don't see the get requests in console
     # during unittests
     def log_message(self, format, *args):
+        """Handler."""
         if self.ENABLE_LOGGING:
             BaseHTTPRequestHandler.log_message(self, format, *args)
         else:
@@ -76,7 +74,7 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 def threaded_http(host='localhost', port=4443, verbosity=2):
-    '''establishes an HTTP server on host:port in a thread'''
+    """Establish an HTTP server on host:port in a thread."""
     server = ThreadedHTTPServer((host, port), CustomHTTPHandler)
 
     if verbosity >= 3:
