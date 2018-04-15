@@ -26,7 +26,7 @@ except Exception:
     raise
 
 try:
-    uni_type = uni_type  # noqa
+    uni_type = unicode  # noqa
 except Exception:
     uni_type = str
 
