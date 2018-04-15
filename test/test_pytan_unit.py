@@ -39,6 +39,12 @@ pytan.utils.setup_console_logging()
 pytan.utils.set_log_levels(SERVER_INFO["loglevel"])
 
 
+def get_mock(f):
+    """Get the contents of a file from the "mock" directory under my_dir."""
+    ret = open(os.path.join(my_dir, 'mock', f), 'rb+').read()
+    return ret
+
+
 class TestDehumanizeSensorUtils(unittest.TestCase):
     """Test."""
 
@@ -1115,10 +1121,10 @@ class TestManualBuildObjectUtils(unittest.TestCase):
     def setUpClass(cls):  # noqa
         """Test."""
         # load in our JSON sensor object for testing
-        f = os.path.join(my_dir, 'sensor_obj_with_params.json')
+        f = os.path.join(my_dir, 'mock', 'sensor_obj_with_params.json')
         cls.sensor_obj_with_params = pytan.utils.load_taniumpy_from_json(f)
 
-        f = os.path.join(my_dir, 'sensor_obj_no_params.json')
+        f = os.path.join(my_dir, 'mock', 'sensor_obj_no_params.json')
         cls.sensor_obj_no_params = pytan.utils.load_taniumpy_from_json(f)
 
     def test_build_selectlist_obj_noparamssensorobj_noparams(self):
@@ -1597,7 +1603,7 @@ class TestDeserializeBadXML(unittest.TestCase):
           [u'\x80', u'\x80', u'\x8d', u'\x95', u'\x81', u'\x89', u'\x89', u'\x81', u'\x95', u'\x8b']
         """
         f = 'bad_chars_basetype_control.xml'
-        a = open(os.path.join(my_dir, f), 'rb+').read()
+        a = get_mock(f)
         b = pytan.xml_clean.xml_cleaner(a, log_messages=False)
         c = pytan.taniumpy.BaseType.fromSOAPBody(b)
         self.assertTrue(c)
@@ -1622,7 +1628,7 @@ class TestDeserializeBadXML(unittest.TestCase):
         XMLCleaner: Restricted characters found: [u'\x93', u'\x94']
         """
         f = 'bad_chars_resultset_latin1.xml'
-        a = open(os.path.join(my_dir, f), 'rb+').read()
+        a = get_mock(f)
         b = pytan.xml_clean.xml_cleaner(a, log_messages=False)
         el = ET.fromstring(b)
         cdata = el.find('.//ResultXML')
@@ -1647,7 +1653,7 @@ class TestDeserializeBadXML(unittest.TestCase):
         XMLCleaner: No restricted characters found
         """
         f = 'bad_chars_resultset_surrogate.xml'
-        a = open(os.path.join(my_dir, f), 'rb+').read()
+        a = get_mock(f)
         b = pytan.xml_clean.xml_cleaner(a, log_messages=False)
         el = ET.fromstring(b)
         cdata = el.find('.//ResultXML')
