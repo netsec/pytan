@@ -54,8 +54,8 @@
         "method_template": "invalid_basic",
         "response_template": "NONE",
         "args": {
-            "package": "Custom Tagging - Add Tags",
-            "run": true
+            "package": "Set Windows Tanium Client Logging Level",
+            "run": false
         },
         "exception": "pytan.exceptions.HandlerError",
         "error_str": "parameter key.*requires a value, parameter definition"
@@ -68,7 +68,7 @@
         "response_template": "NONE",
         "args": {
             "package": "",
-            "run": true
+            "run": false
         },
         "exception": "pytan.exceptions.HumanParserError",
         "error_str": "'' must be a string supplied as 'package'"
@@ -81,7 +81,7 @@
         "response_template": "NONE",
         "args": {
             "package": "Invalid Package",
-            "run": true
+            "run": false
         },
         "exception": "pytan.exceptions.HandlerError",
         "error_str": "No results found searching for.*"

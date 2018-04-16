@@ -45,7 +45,7 @@
         "desc": "Export a package object to a JSON file, adding ' API TEST' to the name of the package before exporting the JSON file and deleting any pre-existing package with the same (new) name, then create a new package object from the exported JSON file",
         "xml_desc": "Get a package object, add ' API TEST' to the name of the package object, delete any pre-existing package with the new name, then create a new package object with the new name",
         "priority": "1",
-        "get": {"objtype": "package", "id": 31},
+        "get": {"objtype": "package", "name": "Distribute Tanium Standard Utilities"},
         "objtype": "package",
         "method_template": "create_from_json_delete_before",
         "response_template": "object",
