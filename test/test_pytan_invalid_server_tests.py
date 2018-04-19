@@ -32,11 +32,6 @@ try:
 except Exception:
     raise
 
-try:
-    # get our server connection info
-    from API_INFO import SERVER_INFO
-except Exception:
-    raise
 
 # where the output files from the tests will be stored
 TEST_OUT = os.path.join(my_dir, 'TEST_OUT')
