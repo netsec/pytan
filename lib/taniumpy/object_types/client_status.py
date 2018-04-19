@@ -27,6 +27,7 @@ class ClientStatus(BaseType):
                         'status': str,
                         'port_number': int,
                         'public_key_valid': int,
+                        'registered_with_tls': int,
                         'cache_row_id': int},
             complex_properties={},
             list_properties={},
@@ -43,6 +44,7 @@ class ClientStatus(BaseType):
         self.status = None
         self.port_number = None
         self.public_key_valid = None
+        self.registered_with_tls = None
         self.cache_row_id = None
         
         

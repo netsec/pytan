@@ -26,7 +26,8 @@ class SystemStatusAggregate(BaseType):
                         'slowlink_count': int,
                         'blocked_count': int,
                         'leader_count': int,
-                        'normal_count': int},
+                        'normal_count': int,
+                        'registered_with_tls_count': int},
             complex_properties={'versions': VersionAggregateList},
             list_properties={},
         )
@@ -42,6 +43,7 @@ class SystemStatusAggregate(BaseType):
         self.blocked_count = None
         self.leader_count = None
         self.normal_count = None
+        self.registered_with_tls_count = None
         self.versions = None
         
 

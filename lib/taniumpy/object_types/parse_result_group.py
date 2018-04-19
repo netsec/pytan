@@ -18,15 +18,24 @@ class ParseResultGroup(BaseType):
             simple_properties={'score': int,
                         'question_text': str},
             complex_properties={'parse_results': ParseResultList,
-                        'question': Question},
+                        'question': Question,
+                        'question_group_sensors': SensorList,
+                        'parameter_values': ParameterValueList,
+                        'sensor_references': SensorReferenceList},
             list_properties={},
         )
         self.score = None
         self.question_text = None
         self.parse_results = None
         self.question = None
+        self.question_group_sensors = None
+        self.parameter_values = None
+        self.sensor_references = None
         
 
 from parse_result_list import ParseResultList
 from question import Question
+from sensor_list import SensorList
+from parameter_value_list import ParameterValueList
+from sensor_reference_list import SensorReferenceList
 

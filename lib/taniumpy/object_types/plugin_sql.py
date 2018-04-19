@@ -17,14 +17,14 @@ class PluginSql(BaseType):
             self,
             simple_properties={'rows_affected': int,
                         'result_count': int},
-            complex_properties={'columns': PluginSqlColumn},
-            list_properties={'result_row': PluginSqlResult},
+            complex_properties={'columns': PluginSqlColumnList},
+            list_properties={'result_row': PluginSqlResultList},
         )
         self.rows_affected = None
         self.result_count = None
         self.columns = None
         self.result_row = []
 
-from plugin_sql_column import PluginSqlColumn
-from plugin_sql_result import PluginSqlResult
+from plugin_sql_column_list import PluginSqlColumnList
+from plugin_sql_result_list import PluginSqlResultList
 

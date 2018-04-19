@@ -18,6 +18,7 @@ class WhiteListedUrl(BaseType):
             simple_properties={'id': int,
                         'chunk_id': str,
                         'download_seconds': int,
+                        'expire_seconds': int,
                         'url_regex': str},
             complex_properties={'metadata': MetadataList},
             list_properties={},
@@ -25,6 +26,7 @@ class WhiteListedUrl(BaseType):
         self.id = None
         self.chunk_id = None
         self.download_seconds = None
+        self.expire_seconds = None
         self.url_regex = None
         self.metadata = None
         

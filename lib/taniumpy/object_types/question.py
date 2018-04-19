@@ -19,13 +19,15 @@ class Question(BaseType):
                         'expire_seconds': int,
                         'skip_lock_flag': int,
                         'expiration': str,
+                        'is_expired': int,
                         'name': str,
                         'query_text': str,
                         'hidden_flag': int,
                         'action_tracking_flag': int,
                         'force_computer_id_flag': int,
                         'cache_row_id': int,
-                        'index': int},
+                        'index': int,
+                        'from_canonical_text': int},
             complex_properties={'selects': SelectList,
                         'context_group': Group,
                         'group': Group,
@@ -38,6 +40,7 @@ class Question(BaseType):
         self.expire_seconds = None
         self.skip_lock_flag = None
         self.expiration = None
+        self.is_expired = None
         self.name = None
         self.query_text = None
         self.hidden_flag = None
@@ -45,6 +48,7 @@ class Question(BaseType):
         self.force_computer_id_flag = None
         self.cache_row_id = None
         self.index = None
+        self.from_canonical_text = None
         self.selects = None
         self.context_group = None
         self.group = None

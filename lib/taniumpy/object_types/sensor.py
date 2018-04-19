@@ -23,6 +23,7 @@ class Sensor(BaseType):
                         'description': str,
                         'source_id': int,
                         'source_hash': int,
+                        'source_name': str,
                         'parameter_definition': str,
                         'value_type': str,
                         'max_age_seconds': int,
@@ -34,11 +35,14 @@ class Sensor(BaseType):
                         'last_modified_by': str,
                         'preview_sensor_flag': int,
                         'hidden_flag': int,
+                        'keep_duplicates_flag': int,
                         'deleted_flag': int,
                         'cache_row_id': int},
-            complex_properties={'queries': SensorQueryList,
+            complex_properties={'content_set': IdReference,
+                        'queries': SensorQueryList,
                         'parameters': ParameterList,
                         'subcolumns': SensorSubcolumnList,
+                        'mod_user': User,
                         'string_hints': StringHintList,
                         'metadata': MetadataList},
             list_properties={},
@@ -51,6 +55,7 @@ class Sensor(BaseType):
         self.description = None
         self.source_id = None
         self.source_hash = None
+        self.source_name = None
         self.parameter_definition = None
         self.value_type = None
         self.max_age_seconds = None
@@ -62,18 +67,23 @@ class Sensor(BaseType):
         self.last_modified_by = None
         self.preview_sensor_flag = None
         self.hidden_flag = None
+        self.keep_duplicates_flag = None
         self.deleted_flag = None
         self.cache_row_id = None
+        self.content_set = None
         self.queries = None
         self.parameters = None
         self.subcolumns = None
+        self.mod_user = None
         self.string_hints = None
         self.metadata = None
         
 
+from id_reference import IdReference
 from sensor_query_list import SensorQueryList
 from parameter_list import ParameterList
 from sensor_subcolumn_list import SensorSubcolumnList
+from user import User
 from string_hint_list import StringHintList
 from metadata_list import MetadataList
 

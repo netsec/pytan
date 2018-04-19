@@ -27,12 +27,14 @@ class SavedQuestion(BaseType):
                         'row_count_flag': int,
                         'keep_seconds': int,
                         'archive_enabled_flag': int,
+                        'skip_schedule_on_update_flag': int,
                         'most_recent_question_id': int,
                         'action_tracking_flag': int,
                         'mod_time': str,
                         'index': int,
                         'cache_row_id': int},
-            complex_properties={'question': Question,
+            complex_properties={'content_set': IdReference,
+                        'question': Question,
                         'packages': PackageSpecList,
                         'user': User,
                         'archive_owner': User,
@@ -52,11 +54,13 @@ class SavedQuestion(BaseType):
         self.row_count_flag = None
         self.keep_seconds = None
         self.archive_enabled_flag = None
+        self.skip_schedule_on_update_flag = None
         self.most_recent_question_id = None
         self.action_tracking_flag = None
         self.mod_time = None
         self.index = None
         self.cache_row_id = None
+        self.content_set = None
         self.question = None
         self.packages = None
         self.user = None
@@ -65,6 +69,7 @@ class SavedQuestion(BaseType):
         self.metadata = None
         
 
+from id_reference import IdReference
 from question import Question
 from package_spec_list import PackageSpecList
 from user import User

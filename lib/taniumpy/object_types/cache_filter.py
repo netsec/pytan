@@ -19,8 +19,9 @@ class CacheFilter(BaseType):
                         'value': str,
                         'type': str,
                         'operator': str,
-                        'not_flag': int},
-            complex_properties={},
+                        'not_flag': int,
+                        'and_flag': int},
+            complex_properties={'sub_filters': CacheFilterList},
             list_properties={},
         )
         self.field = None
@@ -28,8 +29,9 @@ class CacheFilter(BaseType):
         self.type = None
         self.operator = None
         self.not_flag = None
-        
+        self.and_flag = None
+        self.sub_filters = None
         
 
-
+from cache_filter_list import CacheFilterList
 

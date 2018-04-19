@@ -22,8 +22,8 @@ class PluginSchedule(BaseType):
                         'plugin_server': str,
                         'start_hour': int,
                         'end_hour': int,
-                        'start_date': int,
-                        'end_date': int,
+                        'start_date': str,
+                        'end_date': str,
                         'run_on_days': str,
                         'run_interval_seconds': int,
                         'enabled': int,
@@ -31,10 +31,12 @@ class PluginSchedule(BaseType):
                         'input': str,
                         'last_run_time': str,
                         'last_exit_code': int,
-                        'last_run_text': str},
+                        'last_run_text': str,
+                        'modification_time': str},
             complex_properties={'arguments': PluginArgumentList,
                         'user': User,
-                        'last_run_sql': PluginSql},
+                        'last_run_sql': PluginSql,
+                        'mod_user': User},
             list_properties={},
         )
         self.id = None
@@ -54,12 +56,15 @@ class PluginSchedule(BaseType):
         self.last_run_time = None
         self.last_exit_code = None
         self.last_run_text = None
+        self.modification_time = None
         self.arguments = None
         self.user = None
         self.last_run_sql = None
+        self.mod_user = None
         
 
 from plugin_argument_list import PluginArgumentList
 from user import User
 from plugin_sql import PluginSql
+from user import User
 

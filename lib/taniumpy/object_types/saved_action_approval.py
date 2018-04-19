@@ -17,12 +17,14 @@ class SavedActionApproval(BaseType):
             self,
             simple_properties={'id': int,
                         'name': str,
+                        'owner_user_id': int,
                         'approved_flag': int},
             complex_properties={'metadata': MetadataList},
             list_properties={},
         )
         self.id = None
         self.name = None
+        self.owner_user_id = None
         self.approved_flag = None
         self.metadata = None
         

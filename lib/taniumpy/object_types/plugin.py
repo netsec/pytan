@@ -40,7 +40,8 @@ class Plugin(BaseType):
                         'sql_response': PluginSql,
                         'metadata': MetadataList,
                         'commands': PluginCommandList,
-                        'permissions': PermissionList},
+                        'permissions': PermissionList,
+                        'content_set': ContentSet},
             list_properties={},
         )
         self.name = None
@@ -69,6 +70,7 @@ class Plugin(BaseType):
         self.metadata = None
         self.commands = None
         self.permissions = None
+        self.content_set = None
         
 
 from plugin_argument_list import PluginArgumentList
@@ -76,4 +78,5 @@ from plugin_sql import PluginSql
 from metadata_list import MetadataList
 from plugin_command_list import PluginCommandList
 from permission_list import PermissionList
+from content_set import ContentSet
 

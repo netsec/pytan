@@ -16,12 +16,13 @@ class GroupList(BaseType):
         BaseType.__init__(
             self,
             simple_properties={},
-            complex_properties={},
+            complex_properties={'cache_info': CacheInfo},
             list_properties={'group': Group},
         )
         
-        
+        self.cache_info = None
         self.group = []
 
 from group import Group
+from cache_info import CacheInfo
 

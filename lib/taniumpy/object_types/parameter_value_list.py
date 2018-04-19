@@ -8,20 +8,20 @@
 from .base import BaseType
 
 
-class PluginSqlColumn(BaseType):
+class ParameterValueList(BaseType):
 
-    _soap_tag = 'columns'
+    _soap_tag = 'parameter_values'
 
     def __init__(self):
         BaseType.__init__(
             self,
-            simple_properties={},
+            simple_properties={'value': str},
             complex_properties={},
-            list_properties={'name': str},
+            list_properties={},
         )
+        self.value = None
         
         
-        self.name = []
 
 
 

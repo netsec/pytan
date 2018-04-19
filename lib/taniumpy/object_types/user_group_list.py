@@ -8,20 +8,20 @@
 from .base import BaseType
 
 
-class PluginSqlResult(BaseType):
+class UserGroupList(BaseType):
 
-    _soap_tag = 'result_row'
+    _soap_tag = 'user_groups'
 
     def __init__(self):
         BaseType.__init__(
             self,
             simple_properties={},
             complex_properties={},
-            list_properties={'value': str},
+            list_properties={'user_group': UserGroup},
         )
         
         
-        self.value = []
+        self.user_group = []
 
-
+from user_group import UserGroup
 

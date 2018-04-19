@@ -10,7 +10,7 @@ from .base import BaseType
 
 class CacheFilterList(BaseType):
 
-    _soap_tag = 'cache_filters'
+    _soap_tag = 'sub_filters'
 
     def __init__(self):
         BaseType.__init__(

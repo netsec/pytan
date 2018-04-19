@@ -15,11 +15,11 @@ class ClientCount(BaseType):
     def __init__(self):
         BaseType.__init__(
             self,
-            simple_properties={},
+            simple_properties={'count': int},
             complex_properties={},
             list_properties={},
         )
-        
+        self.count = None
         
         
 
