@@ -60,6 +60,7 @@ LOG_LEVEL_MAPS = [
         3,
         {
             'pytan.handler': 'DEBUG',
+            'pytan.sessions.Session': 'INFO',
             'pytan.pollers.QuestionPoller.progress': 'DEBUG',
             'pytan.pollers.ActionPoller.progress': 'DEBUG',
             'pytan.pollers.SSEPoller.progress': 'DEBUG',
@@ -301,6 +302,40 @@ GET_OBJ_MAP = {
         'manual': True,
         'delete': True,
         'create_json': True,
+    },
+    'content_set_role': {
+        'single': 'ContentSetRole',
+        # the object type used to find a single item. only used if 'search' is not empty and 'manual' = False
+        'multi': None,
+        # the object type used to find multiple items. only used if 'search' is not empty and 'manual' = False
+        'all': 'ContentSetRoleList',
+        # the object type used to find all items, only used if 'search' is empty and 'manual' = True
+        # also used if calling get_all()
+        'search': ["id", "name"],
+        # list of attributes that the API can search for
+        # if empty, get all objects and compare each attr against keys/values in kwargs
+        'manual': False,
+        'delete': True,
+        # api supports deletion of this object type
+        'create_json': True,
+        # pytan can create this object type from a JSON source
+    },
+    'content_set_role_membership': {
+        'single': 'ContentSetRoleMembership',
+        # the object type used to find a single item. only used if 'search' is not empty and 'manual' = False
+        'multi': None,
+        # the object type used to find multiple items. only used if 'search' is not empty and 'manual' = False
+        'all': 'ContentSetRoleMembershipList',
+        # the object type used to find all items, only used if 'search' is empty and 'manual' = True
+        # also used if calling get_all()
+        'search': ["id"],
+        # list of attributes that the API can search for
+        # if empty, get all objects and compare each attr against keys/values in kwargs
+        'manual': True,
+        'delete': True,
+        # api supports deletion of this object type
+        'create_json': True,
+        # pytan can create this object type from a JSON source
     },
 }
 """
