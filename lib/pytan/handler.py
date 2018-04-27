@@ -182,6 +182,9 @@ class Handler(object):
         >>> handler = pytan.Handler('username', 'password', 'host')
     """
 
+    DEL_WAIT = 15
+    """Default wait time to use for deletion operations."""
+
     def __init__(self, username=None, password=None, host=None, port=443,
                  loglevel=0, debugformat=False, gmt_log=True, session_id=None, **kwargs):
         """Constructor."""
