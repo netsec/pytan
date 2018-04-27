@@ -1,8 +1,8 @@
-#!/usr/bin/env python -i
+#!/usr/bin/env python
 # -*- mode: Python; tab-width: 4; indent-tabs-mode: nil; -*-
 # ex: set tabstop=4
 # Please do not change the two lines above. See PEP 8, PEP 263.
-'''Provides an interactive console with pytan available as handler'''
+'''Delete an object of type: user'''
 __author__ = 'Jim Olsen <jim.olsen@tanium.com>'
 __version__ = '2.1.5'
 
@@ -24,11 +24,10 @@ import pytan.binsupport
 if __name__ == "__main__":
     pytan.binsupport.version_check(reqver=__version__)
 
-    setupmethod = getattr(pytan.binsupport, 'setup_{}_argparser'.format(my_name))
-    responsemethod = getattr(pytan.binsupport, 'process_{}_args'.format(my_name))
-
-    parser = setupmethod(doc=__doc__)
+    parser = pytan.binsupport.setup_delete_object_argparser(obj='content_set_role', doc=__doc__)
     args = parser.parse_args()
 
     handler = pytan.binsupport.process_handler_args(parser=parser, args=args)
-    response = responsemethod(parser=parser, handler=handler, args=args)
+    response = pytan.binsupport.process_delete_object_args(
+        parser=parser, handler=handler, obj='content_set_role', args=args,
+    )
