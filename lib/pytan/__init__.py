@@ -42,14 +42,15 @@ try:
     import taniumpy  # noqa
 
     import pytan  # noqa
+    import pytan.utils  # noqa
     import pytan.constants  # noqa
     import pytan.exceptions  # noqa
     import pytan.handler  # noqa
     import pytan.help  # noqa
     import pytan.sessions  # noqa
-    import pytan.utils  # noqa
     import pytan.xml_clean  # noqa
 
+    from pytan import arg_tools  # noqa
     from pytan import constants  # noqa
     from pytan import exceptions  # noqa
     from pytan import help  # noqa
