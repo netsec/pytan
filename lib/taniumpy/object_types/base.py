@@ -57,28 +57,64 @@ class BaseType(object):
         if len(self._list_properties) == 1:
             return len(getattr(self, self._list_properties.items()[0][0]))
         else:
-            raise Exception('Not simply a list type, len() not supported')
+            # TODO(jeo): throw error if no simple or complex props
+            cnt_keys = list(self._simple_properties.keys()) + list(self._complex_properties.keys())
+            cnt_dict = {k: getattr(self, k, None) for k in cnt_keys}
+            cnt_vals = [v for k, v in cnt_dict.items() if v is not None]
+            return len(cnt_vals)
 
     def __str__(self):
-        class_name = self.__class__.__name__
-        val = ''
-        if len(self._list_properties) == 1:
-            val = ', len: {}'.format(len(self))
+        """String method."""
+        vals = []
+        m = "<{}>".format(self.__class__.__name__)
+        vals.append(m)
+        if self._is_list():
+            m = "# items: {}".format(len(self))
+            vals.append(m)
         else:
-            if getattr(self, 'name', ''):
-                val += ', name: {!r}'.format(self.name)
-            if getattr(self, 'id', ''):
-                val += ', id: {!r}'.format(self.id)
-            if not val:
-                vals = [
-                    '{}: {!r}'.format(p, getattr(self, p, ''))
-                    for p in sorted(self._simple_properties)
-                ]
-                if vals:
-                    vals = "\t" + "\n\t".join(vals)
-                    val = ', vals:\n{}'.format(vals)
-        ret = '{}{}'.format(class_name, val)
+            hasname = hasattr(self, "name")
+            hasdisplayname = hasattr(self, "display_name")
+            hasid = hasattr(self, "id")
+            if hasname:
+                m = "name: {!r}".format(self.name)
+                vals.append(m)
+            if hasdisplayname and self.display_name:
+                m = "display_name: {!r}".format(self.display_name)
+                vals.append(m)
+            if hasid:
+                m = "id: {!r}".format(self.id)
+                vals.append(m)
+            if not any([hasname, hasid]):
+                m = "set attrs: {}".format(len(self))
+                vals.append(m)
+        ret = ", ".join(vals)
         return ret
+
+    def _info(self):
+        """Construct a string that explains self."""
+        obj_str = "{}".format(self)
+        if self._is_list():
+            if self:
+                items = ["{}".format(x) for x in self]
+                j = "\n\t"
+                obj_str += ", items:{}".format(j + j.join(items))
+        return obj_str
+
+    def simple_dict(self):
+        """Return a dictionary with all of the key/value pairs of obj that are simple properties."""
+        return {k: getattr(self, k) for k in self._simple_properties.keys()}
+
+    def complex_dict(self):
+        """Return a dictionary with all of the key/value pairs of obj that are complex properties."""
+        return {k: getattr(self, k) for k in self._complex_properties.keys()}
+
+    def _is_list(self):
+        """Return bool if this object is a list type."""
+        return len(self._list_properties) == 1
+
+    def __repr__(self):
+        """Return the string instead of default repr."""
+        return "{!r}".format(self.__str__())
 
     def __setattr__(self, name, value):
         """Enforce type, if name is a complex property"""
