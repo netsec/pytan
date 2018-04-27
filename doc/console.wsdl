@@ -4,7 +4,6 @@
    All interfaces are subject to change as we refine and extend our APIs.
    Please see the terms of use for more information.
 -->
-<!-- From Tanium Server Version: 6.5.314.3400 -->
 <!-- Version: 0.0.1 -->
 <definitions
   xmlns:typens="urn:TaniumSOAP"
@@ -20,7 +19,7 @@
     <xsd:schema xmlns="urn:TaniumSOAP" targetNamespace="urn:TaniumSOAP">
       <xsd:complexType name="TaniumSOAPResult">
         <xsd:all>
-          <xsd:element name="command"       type="xsd:string"     minOccurs="0"/>
+          <xsd:element name="command"       type="command"        minOccurs="0"/>
           <xsd:element name="auth"          type="auth"           minOccurs="0"/>
           <xsd:element name="session"       type="xsd:string"     minOccurs="0"/>
           <xsd:element name="server_version" type="xsd:string"    minOccurs="0"/>
@@ -46,13 +45,17 @@
                 AddObject: Create new object(s) defined by the object_list parameter.  Not all types are implemented yet.
                 GetObject: Retrieve all objects whose types and properties match the ones specified in the object_list parameter. For some types, all objects of that type can be
                   retrieved with a single request.
+                MoveObject: Move an object to a content_set, specifying the object by ID and only the content_set property by id or name. Content Set Administrator use only.
                 UpdateObject: Not Yet Implemented. Update the existing object specified in the object_list parameter to have the values specified in the object_list paramater
                 DeleteObject: Delete the object(s) specified in the object_list parameter
                 UploadFile:  Uses the upload_file object and adds the specified file to the download cache.
                 RunPlugin: Runs any plugins specified in the object_list using the arguments defined in the plugin object.
+                PreviewLdapSync: Returns users and groups that would be synchronized based on Ldap settings passed in from request
+                ImportObject: Import objects
+                ExportObject: Export objects
           -->
           <xsd:element name="auth"          type="auth"           minOccurs="0"/>
-          <xsd:element name="command"       type="xsd:string"     minOccurs="0"/>
+          <xsd:element name="command"       type="command"     minOccurs="0"/>
           <xsd:element name="object_list"   type="object_list"    minOccurs="0"/>
           <!--
             GetResultInfo and GetResultData:
@@ -119,6 +122,22 @@
           <xsd:element name="FilterString"  type="xsd:string"     minOccurs="0"/>   <!-- Filter results to only include items that match this regular expression -->
         </xsd:all>
       </xsd:complexType>
+      <xsd:simpleType name="command">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="AddObject" />
+          <xsd:enumeration value="GetObject" />
+          <xsd:enumeration value="UpdateObject" />
+          <xsd:enumeration value="DeleteObject" />
+          <xsd:enumeration value="GetSavedQuestions" />
+          <xsd:enumeration value="GetResultInfo" />
+          <xsd:enumeration value="GetResultData" />
+          <xsd:enumeration value="GetMergedResultData" />
+          <xsd:enumeration value="UploadFile" />
+          <xsd:enumeration value="RunPlugin" />
+          <xsd:enumeration value="ExportObject" />
+          <xsd:enumeration value="ImportObject" />
+        </xsd:restriction>
+      </xsd:simpleType>
       <xsd:complexType name="auth">
         <xsd:all>
           <!--
@@ -150,6 +169,10 @@
             BESRelevance: execute the script as a BigFix Relevance expression (using QNA)
             VBScript: execute the script as a VB Script (if platform is Windows then this is the default)
             Powershell: execute the script using PowerShell
+            JScript: execute the script using JScript (Windows platform only)
+              - Enable UI support with global setting "enable_python_jscript_type_flag"
+            Python: execute the script using Python (all platforms but it requires separate dll/.so files to be distributed to the endpoints).
+              - Enable UI support with global setting "enable_python_jscript_type_flag"
             UnixShell: execute the script as a shell script, use #! notation to specify a specific shell program, otherwise /bin/sh will be used (if platform is Linux, Solaris, AIX, or Mac, then this is the default).
           -->
           <xsd:element name="script_type"   type="xsd:string"     minOccurs="0"/>
@@ -215,9 +238,15 @@
         <xsd:all>
           <xsd:element name="id"            type="xsd:long"   minOccurs="0"/> <!-- ID of the saved action to be approved -->
           <xsd:element name="name"          type="xsd:string" minOccurs="0"/> <!-- Name of action to be approved.  Not needed if ID is supplied -->
+          <xsd:element name="owner_user_id" type="xsd:int" minOccurs="0"/> <!-- Read-only value: The ID of the user that created the saved action. -->
           <xsd:element name="approved_flag" type="xsd:int"    minOccurs="0"/> <!-- Is action approved or not? This uses the posting user to supply the approver name and ID. -->
           <xsd:element name="metadata" type="metadata_list" minOccurs="0"/> <!-- metadata to be used for approval comments.  entries are associated to the saved action being approved -->
         </xsd:all>
+      </xsd:complexType>
+      <xsd:complexType name="saved_action_approval_list">
+        <xsd:sequence>
+          <xsd:element name="saved_action_approval"   type="saved_action_approval"   minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
       </xsd:complexType>
       <xsd:complexType name="saved_action_row_id_list">
         <xsd:sequence>
@@ -288,6 +317,14 @@
                         <value type="xsd:int">6</value>
                     </constant>
                     <constant>
+                        <name>JS_SENSOR</name>
+                        <value type="xsd:int">7</value>
+                    </constant>
+                    <constant>
+                        <name>PY_SENSOR</name>
+                        <value type="xsd:int">8</value>
+                    </constant>
+                    <constant>
                         <name>HASH_RESULT</name>
                         <value type="xsd:int">0</value>
                     </constant>
@@ -339,12 +376,14 @@
           <xsd:element name="id"            type="xsd:long"       minOccurs="0"/>
           <xsd:element name="name"          type="xsd:string"     minOccurs="0"/>
           <xsd:element name="hash"          type="xsd:long"       minOccurs="0"/>
+          <xsd:element name="content_set"   type="id_reference"   minOccurs="0"/>
           <xsd:element name="string_count"  type="xsd:long"       minOccurs="0"/>
           <xsd:element name="category"      type="xsd:string"     minOccurs="0"/>
           <xsd:element name="description"   type="xsd:string"     minOccurs="0"/>
           <xsd:element name="queries"       type="sensor_query_list" minOccurs="0"/>
           <xsd:element name="source_id"     type="xsd:int"       minOccurs="0"/>    <!-- the id of the sensor into which the parameters are substituted, if specified, source_hash may be omitted -->
           <xsd:element name="source_hash"   type="xsd:int"       minOccurs="0"/>    <!-- the hash of the sensor into which the parameters are substituted, if specified, source_id may be omitted -->
+          <xsd:element name="source_name"   type="xsd:string"    minOccurs="0"/>    <!-- the name of the source sensor, used for ExportObject/ImportObject where IDs will change. Not used for GetObject/UpdateObject -->
           <xsd:element name="parameters"    type="parameter_list" minOccurs="0"/>   <!-- List of parameters to substitute into the source sensor -->
           <xsd:element name="parameter_definition" type="xsd:string" minOccurs="0"/>
           <!--
@@ -368,19 +407,52 @@
           <xsd:element name="creation_time"   type="xsd:string"    minOccurs="0"/>   <!-- When this was created in the database -->
           <xsd:element name="modification_time" type="xsd:string"  minOccurs="0"/>   <!-- Last time it was modified -->
           <xsd:element name="last_modified_by" type="xsd:string"   minOccurs="0"/>   <!-- name of the user who last modified or created this -->
+          <xsd:element name="mod_user"        type="user"          minOccurs="0"/>   <!-- Last user to modify this -->
           <xsd:element name="string_hints" type="string_hint_list" minOccurs="0"/>   <!-- define initial strings to be hashed and added to the string cache for this sensor. -->
           <xsd:element name="preview_sensor_flag" type="xsd:int" minOccurs="0"/><!-- creates/acquires a preview sensor -->
           <xsd:element name="metadata" type="metadata_list" minOccurs="0"/>
           <xsd:element name="hidden_flag"   type="xsd:int" minOccurs="0"/>
+          <xsd:element name="keep_duplicates_flag"   type="xsd:int" minOccurs="0"/>     <!-- Starting with 7.2, clients have the ability to preserve duplicate values in sensor results instead of only returning each unique value once.  Turn this flag on to use that new functionality. -->
           <xsd:element name="deleted_flag"   type="xsd:int" minOccurs="0"/>
           <xsd:element name="cache_row_id"  type="xsd:int" minOccurs="0"/> <!-- ID used as a unqiue identifier in the response cache. Refer to cache_id in options. -->
         </xsd:all>
       </xsd:complexType>
       <xsd:complexType name="audit_data">
         <xsd:sequence>
+          <xsd:element name="object_id"     type="xsd:int" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="details"       type="xsd:string" minOccurs="0"/>
           <xsd:element name="creation_time"     type="xsd:string" minOccurs="0"/>   <!-- When this was created in the database -->
           <xsd:element name="modification_time" type="xsd:string" minOccurs="0"/>   <!-- Last time it was modified -->
           <xsd:element name="last_modified_by"  type="xsd:string" minOccurs="0"/>   <!-- name of the user who last modified or created this -->
+          <xsd:element name="modifier_user_id"     type="xsd:int" minOccurs="0" maxOccurs="1"/>   <!-- id of the user that made the last modification -->
+          <xsd:element name="type"          type="xsd:int" minOccurs="0" maxOccurs="1"/> <!-- 0 for create, 1 for update, 2 for delete -->
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="audit_data_list">
+        <xsd:sequence>
+          <xsd:element name="entry" type="audit_data" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="audit_log">
+        <xsd:sequence>
+          <!--
+            When "id" property is not specified, return one entry per unique object id
+            When "id" property is specified, use option "audit_history_size" to control number of the audit entries (default = 1)
+          -->
+          <xsd:element name="id"           type="xsd:int"                 minOccurs="0" />
+          <!--
+            Supported types:
+              user_audit, system_setting_audit, sensor_audit, group_audit, white_listed_url_audit, package_spec_audit,
+              saved_action_audit, saved_question_audit, content_set_audit, content_set_role_audit, content_set_role_privilege_audit,
+              dashboard_audit, dashboard_group_audit, user_group_audit, authentication_audit
+          -->
+          <xsd:element name="type"         type="xsd:string"              minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="entries"      type="audit_data_list"         minOccurs="0" />
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="audit_log_list">
+        <xsd:sequence>
+          <xsd:element name="audit_log" type="audit_log" minOccurs="0" maxOccurs="unbounded"/>
         </xsd:sequence>
       </xsd:complexType>
       <xsd:complexType name="metadata_item">
@@ -450,12 +522,20 @@
       <xsd:complexType name="group_list">
         <xsd:sequence>
           <xsd:element name="group" type="group" minOccurs="0" maxOccurs="unbounded"/>
+          <xsd:element name="cache_info" type="cache_info" minOccurs="0"/>
         </xsd:sequence>
       </xsd:complexType>
       <xsd:complexType name="filter_list">
         <xsd:sequence>
           <xsd:element name="filter" type="filter" minOccurs="0" maxOccurs="unbounded"/>
         </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="id_reference">
+        <xsd:all>
+          <xsd:element name="id" type="xsd:int" minOccurs="0" maxOccurs="1"/>
+          <!-- can optionally be a reference by name on input, when supported -->
+          <xsd:element name="name" type="xsd:string" minOccurs="0" maxOccurs="1"/>
+        </xsd:all>
       </xsd:complexType>
       <xsd:complexType name="group">
         <xsd:all>
@@ -468,7 +548,7 @@
           -->
           <xsd:element name="id"           type="xsd:int"        minOccurs="0"/>
           <xsd:element name="name"         type="xsd:string"     minOccurs="0"/>   <!-- note that this is optional, and by default Groups are anonymous. Also, if a group is referred to by name, the name must be unique -->
-          <xsd:element name="text"         type="xsd:string"     minOccurs="0"/>   <!-- Text, if any, that this group represents. -->
+          <xsd:element name="text"         type="xsd:string"     minOccurs="0" omitByDefault="1"/>   <!-- Text, if any, that this group represents. -->
           <xsd:element name="and_flag"     type="xsd:int"        minOccurs="0"/>
           <xsd:element name="not_flag"     type="xsd:int"        minOccurs="0"/>
           <xsd:element name="type"         type="xsd:int"        minOccurs="0"/>
@@ -502,7 +582,7 @@
       <xsd:complexType name="xml_error">
         <xsd:all>
           <xsd:element name="type" type="xsd:string" minOccurs="0"/>  <!-- type of object that generated an error -->
-          <xsd:element name="exception" type="xsd:string" minOccurs="0"/> <!-- the exception or failure that occured -->
+          <xsd:element name="exception" type="xsd:string" minOccurs="0"/> <!-- the exception or failure that occurred -->
           <xsd:element name="error_context" type="xsd:string" minOccurs="0"/> <!-- the xml being generated at the time of the failure -->
         </xsd:all>
       </xsd:complexType>
@@ -547,6 +627,7 @@
           <xsd:element name="skip_lock_flag" type="xsd:int"            minOccurs="0"/>   <!-- if set, clients will ignore the value of the skip_lock client setting. This should rarely, if ever, be enabled. -->
           <!-- the following elements are not used at creation time... they are essentially "read-only" -->
           <xsd:element name="expiration"     type="xsd:string"         minOccurs="0"/>   <!-- the date and time of expiration  (format is yyyy-mm-ddThh:mm:ss, for example: 2012-07-24T12:31:00 )  -->
+          <xsd:element name="is_expired"     type="xsd:int"            minOccurs="0"/>   <!-- is the question expired, at the time it was retrieved -->
           <xsd:element name="user"           type="user"               minOccurs="0"/>   <!-- the user that issued this question. The question will only be answered by machines that were members of the user's management rights group when the question was issued -->
           <xsd:element name="management_rights_group" type="group"     minOccurs="0"/>   <!-- The management rights group of the user at the time the question was issued. -->
           <!-- the following elements are derived from the saved question, if this question object is an instance of a saved question -->
@@ -564,6 +645,10 @@
             and begin with 0 and not include any duplicate values.
           -->
           <xsd:element name="index"          type="xsd:int"            minOccurs="0"/>
+          <!--
+            The following element is only included on output of question parser results, and is 1 if the question text was canonically (unambiguously) understood
+          -->
+          <xsd:element name="from_canonical_text" type="xsd:int"            minOccurs="0"/>
         </xsd:all>
       </xsd:complexType>
       <xsd:complexType name="package_file_template_list">
@@ -648,17 +733,31 @@
           <!--
             A package_spec object is a list of files to be distributed and a command to be executed. Typically referred to simply as a "package"
           -->
-          <xsd:element name="id"              type="xsd:long"       minOccurs="0"/>
+          <xsd:element name="id"              type="xsd:long"      minOccurs="0"/>
           <xsd:element name="name"            type="xsd:string"    minOccurs="0"/>   <!-- it is possible to refer to an object by name, but if the name is not unique an error may be generated. -->
+          <xsd:element name="content_set"     type="id_reference"  minOccurs="0"/>
           <xsd:element name="display_name"    type="xsd:string"    minOccurs="0"/>   <!-- display name of package -->
           <xsd:element name="files"           type="package_file_list" minOccurs="0"/>  <!-- List of files to distribute -->
           <xsd:element name="file_templates"  type="package_file_template_list" minOccurs="0"/>  <!-- List of files to distribute where file is determined by parameter substitution -->
           <xsd:element name="command"         type="xsd:string"    minOccurs="0"/>   <!-- Command to be executed -->
           <xsd:element name="command_timeout" type="xsd:int"       minOccurs="0"/>   <!-- Limit on how long the command can execute before it will be terminated -->
           <xsd:element name="expire_seconds"  type="xsd:int"       minOccurs="0"/>   <!-- This value is added to the command_timeout to determine how long the action will be active before it is considered expired -->
-          <xsd:element name="hidden_flag"     type="xsd:int"       minOccurs="0"/>   <!-- if set, then this is an "internal" object that should not be shown to end users -->
+          <xsd:element name="hidden_flag"     type="xsd:int"       minOccurs="0"/>   <!-- if set, then this is an "internal" object that should not be shown to end users.
+                                                                                          This normally defaults to false; however, if source_id is specified, it defaults to true.  -->
+          <xsd:element name="process_group_flag" type="xsd:int"    minOccurs="0"/>   <!-- if set, then 7.1+ clients will run the package command in a process group. This setting has no effect on pre-7.1 clients.
+                                                                                          The client will also kill any remaining descendant processes when the package command completes.
+                                                                                          This defaults to false. -->
           <xsd:element name="signature"       type="xsd:string"    minOccurs="0"/>   <!-- A value that will be verified if the server license requires signed content -->
           <xsd:element name="source_id"       type="xsd:int"       minOccurs="0"/>   <!-- the package id of the package into which the parameters are substituted -->
+          <xsd:element name="source_name"     type="xsd:string"    minOccurs="0"/>   <!-- the name of the source package, used for ExportObject/ImportObject where IDs will change. Not used for GetObject/UpdateObject -->  
+          <!-- 
+            The "source_hash" is used to detect whether the derived package is out of sync with the source package.
+            The "source_hash_changed_flag" is only applicable to derived packages.
+            - For source package: the hash representation of current state of the source package, and it can change when certain properties of this package are modified.
+            - For non-source package: the hash is copied from the source package at creation time and will not change.
+          -->
+          <xsd:element name="source_hash"     type="xsd:string"       minOccurs="0"/>
+          <xsd:element name="source_hash_changed_flag"  type="xsd:int"  minOccurs="0"/>
           <xsd:element name="verify_group_id" type="xsd:int"       minOccurs="0"/>   <!-- deprecated, use verify_group -->
           <xsd:element name="verify_group"    type="group"         minOccurs="0"/>   <!-- use this to specify a verify group. this will create one if it doesn't exist -->
           <xsd:element name="verify_expire_seconds" type="xsd:int" minOccurs="0"/>
@@ -670,6 +769,7 @@
           <xsd:element name="creation_time"   type="xsd:string"    minOccurs="0"/>   <!-- When this was created in the database -->
           <xsd:element name="modification_time" type="xsd:string"  minOccurs="0"/>   <!-- Last time it was modified -->
           <xsd:element name="last_modified_by" type="xsd:string"   minOccurs="0"/>   <!-- name of the user who last modified or created this -->
+          <xsd:element name="mod_user"        type="user"          minOccurs="0"/>   <!-- Last user to modify this -->
           <xsd:element name="available_time"  type="xsd:string"    minOccurs="0"/>   <!-- the date and time when all of the files became available -->
           <xsd:element name="deleted_flag"    type="xsd:int"       minOccurs="0"/>   <!-- if set, then this package has been marked as deleted -->
           <xsd:element name="metadata"        type="metadata_list" minOccurs="0"/>
@@ -694,6 +794,7 @@
           <xsd:element name="status"            type="xsd:string"          minOccurs="0"/>
           <xsd:element name="port_number"       type="xsd:int"             minOccurs="0"/>
           <xsd:element name="public_key_valid"  type="xsd:int"             minOccurs="0"/>
+          <xsd:element name="registered_with_tls" type="xsd:int"           minOccurs="0"/>
 
           <xsd:element name="cache_row_id" type="xsd:int" minOccurs="0"/> <!-- ID used as a unqiue identifier in the response cache. Refer to cache_id in options. -->
         </xsd:all>
@@ -726,7 +827,8 @@
         <xsd:all>
           <xsd:element name="id"               type="xsd:int"       minOccurs="0"/>
           <xsd:element name="chunk_id"         type="xsd:string"    minOccurs="0"/>
-          <xsd:element name="download_seconds" type="xsd:int"       minOccurs="0"/>
+          <xsd:element name="download_seconds" type="xsd:int"       minOccurs="0"/>   <!-- How frequently to check the source to see if there is a new version of the file -->
+          <xsd:element name="expire_seconds"   type="xsd:int"       minOccurs="0"/>   <!-- How long after a client requests this download that it can be cleaned up until requested again. 0 indicates never expire. -->
           <xsd:element name="metadata"         type="metadata_list" minOccurs="0"/>
           <xsd:element name="url_regex"        type="xsd:string"    minOccurs="0"/>
         </xsd:all>
@@ -762,6 +864,7 @@
           <xsd:element name="blocked_count"          type="xsd:int"/>
           <xsd:element name="leader_count"           type="xsd:int"/>
           <xsd:element name="normal_count"           type="xsd:int"/>
+          <xsd:element name="registered_with_tls_count" type="xsd:int"/>
           <xsd:element name="versions"               type="version_aggregate_list"/>
         </xsd:sequence>
       </xsd:complexType>
@@ -783,6 +886,7 @@
           <xsd:element name="user" type="user" minOccurs="0" maxOccurs="unbounded"/>
         </xsd:sequence>
       </xsd:complexType>
+      <!-- Legacy pre-7.1 permission constants -->
       <xsd:complexType name="permission_list">
         <xsd:annotation>
           <xsd:appinfo>
@@ -855,19 +959,34 @@
           <xsd:element name="role" type="user_role" minOccurs="0" maxOccurs="unbounded"/>
         </xsd:sequence>
       </xsd:complexType>
+      <xsd:complexType name="user_owned_object_ids">
+        <xsd:all>
+          <xsd:element name="saved_actions" type="saved_action_list" minOccurs="0"/>
+          <xsd:element name="saved_questions" type="saved_question_list" minOccurs="0"/>
+          <xsd:element name="plugin_schedules" type="plugin_schedule_list" minOccurs="0"/>
+        </xsd:all>
+      </xsd:complexType>
       <xsd:complexType name="user">
         <xsd:all>
           <xsd:element name="id"                      type="xsd:int"          minOccurs="0"/>
           <xsd:element name="name"                    type="xsd:string"       minOccurs="0"/>   <!-- it is possible to refer to an object by name, but if the name is not unique an error may be generated. -->
           <xsd:element name="domain"                  type="xsd:string"       minOccurs="0"/>   <!-- domain of user -->
-          <xsd:element name="permissions"             type="permission_list"  minOccurs="0"/>   <!-- list of enabled permissions, read-only as it comes from the user's role -->
-          <xsd:element name="roles"                   type="user_role_list"   minOccurs="0"/>   <!-- roles this user is a member of -->
+          <xsd:element name="display_name"            type="xsd:string"       minOccurs="0"/>   <!-- display name -->
+          <xsd:element name="permissions"             type="permission_list"  minOccurs="0"/>   <!-- list of enabled permissions, read-only as it comes from the user's role and content_set_user_groups -->
+          <xsd:element name="roles"                   type="user_role_list"   minOccurs="0"     omitByDefault="1"/>   <!-- roles this user is a member of -->
           <xsd:element name="group_id"                type="xsd:int"          minOccurs="0"/>   <!-- user's management rights group ID -->
+          <xsd:element name="effective_group_id"      type="xsd:int"          minOccurs="0"     omitByDefault="1"/> <!-- user's effective management rights group ID - user and user groups -->
           <xsd:element name="deleted_flag"            type="xsd:int"          minOccurs="0"/>   <!-- is the user deleted or not -->
           <xsd:element name="last_login"              type="xsd:string"       minOccurs="0"/>   <!-- the date and time of the most recent login by this user -->
           <xsd:element name="active_session_count"    type="xsd:int"          minOccurs="0"/>   <!-- the number of active sessions for this user -->
           <xsd:element name="local_admin_flag"        type="xsd:int"          minOccurs="0"/>
           <xsd:element name="metadata" type="metadata_list" minOccurs="0"/>
+          <!-- for add/update only, can be used to replace the content_set_role_membership objects for this user -->
+          <xsd:element name="content_set_roles" type="content_set_role_list" minOccurs="0"      omitByDefault="1"/>
+          <!-- for the current user from include_user_details only -->
+          <xsd:element name="effective_content_set_privileges"        type="effective_content_set_privilege_list"     minOccurs="0"      omitByDefault="1"/>
+          <!-- Administrator only. Used to shown content IDs that this user owns. Use with "include_user_owned_object_ids_flag" option -->
+          <xsd:element name="owned_object_ids"        type="user_owned_object_ids"     minOccurs="0"      omitByDefault="1"/>
         </xsd:all>
       </xsd:complexType>
       <xsd:complexType name="action_list_info">
@@ -945,6 +1064,7 @@
         <xsd:all>
           <xsd:element name="id"              type="xsd:int"       minOccurs="0"/>   <!-- the unique id of this object.  This is the preferred way to refer to an object. -->
           <xsd:element name="name"            type="xsd:string"    minOccurs="0"/>   <!-- it is possible to refer to an object by name, but if the name is not unique an error may be generated. -->
+          <xsd:element name="content_set"     type="id_reference"  minOccurs="0"/>
           <xsd:element name="question"        type="question"      minOccurs="0"/>   <!-- When adding a saved_question object, you must include a question object -->
           <xsd:element name="public_flag"     type="xsd:int"       minOccurs="0"/>   <!-- if false, then only the user that owns this object should be allowed to use/see it -->
           <xsd:element name="hidden_flag"     type="xsd:int"       minOccurs="0"/>   <!-- if set, then this is an "internal" object that should not be shown to end users -->
@@ -960,6 +1080,7 @@
           <xsd:element name="row_count_flag"  type="xsd:int"       minOccurs="0"/>   <!-- indicates that only the row count data should be saved when archiving this question -->
           <xsd:element name="keep_seconds"    type="xsd:int"       minOccurs="0"/>   <!-- how often to save result data into the archive -->
           <xsd:element name="archive_enabled_flag" type="xsd:int" minOccurs="0"/>    <!-- indicates whether archiving is enabled -->
+          <xsd:element name="skip_schedule_on_update_flag" type="xsd:int" minOccurs="0"/>    <!-- indicates whether to create or update existing reissue schedule on UpdateObject command call. This is also used internally by MoveObject command. -->
           <!-- following elements are not used at creation time... they are essentially "read-only" -->
           <xsd:element name="most_recent_question_id" type="xsd:int" minOccurs="0"/> <!-- the id of the most recently issued question object generated by this saved_question -->
           <xsd:element name="user"            type="user"          minOccurs="0"/>   <!-- the user that owns this object -->
@@ -1026,18 +1147,38 @@
           <xsd:element name="parameter_definition"  type="xsd:string"     minOccurs="0"/>
         </xsd:all>
       </xsd:complexType>
+        <xsd:complexType name="parameter_value_list">
+            <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0"/>
+            </xsd:sequence>
+        </xsd:complexType>
+        <xsd:complexType name="sensor_reference">
+            <xsd:all>
+                <xsd:element name="name" type="xsd:string"/>
+                <xsd:element name="start_char" type="xsd:int"/>
+                <xsd:element name="real_ms_avg" type="xsd:int"/>
+            </xsd:all>
+        </xsd:complexType>
+        <xsd:complexType name="sensor_reference_list">
+            <xsd:sequence>
+                <xsd:element name="sensor_reference" type="sensor_reference" minOccurs="0"/>
+            </xsd:sequence>
+        </xsd:complexType>
       <xsd:complexType name="parse_result_group">
         <xsd:all>
-          <xsd:element name="score"          type="xsd:int"           minOccurs="0"/>
-          <xsd:element name="question_text"  type="xsd:string"        minOccurs="0"/>
-          <xsd:element name="parse_results"  type="parse_result_list" minOccurs="0"/>   <!-- Version 0 returns these -->
-          <xsd:element name="question"       type="question"          minOccurs="0"/>   <!-- Later versions return these -->
+          <xsd:element name="score"                  type="xsd:int"           minOccurs="0"/>
+          <xsd:element name="question_text"          type="xsd:string"        minOccurs="0"/>
+          <xsd:element name="parse_results"          type="parse_result_list" minOccurs="0"/>    <!-- Version 0 returns these -->
+          <xsd:element name="question"               type="question"          minOccurs="0"/>    <!-- Later versions return these instead of parse_results -->
+          <xsd:element name="question_group_sensors" type="sensor_list"       minOccurs="0"/>    <!-- Later versions include this extra data to help with parameterization -->
+          <xsd:element name="parameter_values"       type="parameter_value_list" minOccurs="0"/> <!-- 7.2 and later will strip parameters and return them here, left to right order -->
+          <xsd:element name="sensor_references"      type="sensor_reference_list" minOccurs="0"/> <!-- 7.3 and later will return sensor names and start char in question text -->
         </xsd:all>
       </xsd:complexType>
       <xsd:complexType name="client_count">
-          <xsd:simpleContent>
-            <xsd:extension base="xsd:long"/>
-          </xsd:simpleContent>
+          <xsd:all>
+            <xsd:element name="count"          type="xsd:int"           minOccurs="0"/>
+          </xsd:all>
       </xsd:complexType>
       <xsd:complexType name="plugin_argument">
         <xsd:all>
@@ -1051,20 +1192,20 @@
             <xsd:element name="argument" type="plugin_argument" minOccurs="0" maxOccurs="unbounded"/>
           </xsd:sequence>
       </xsd:complexType>
-      <xsd:complexType name="plugin_sql_result">
+      <xsd:complexType name="plugin_sql_result_list">
         <xsd:sequence>
           <xsd:element name="value" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
         </xsd:sequence>
       </xsd:complexType>
-      <xsd:complexType name="plugin_sql_column">
+      <xsd:complexType name="plugin_sql_column_list">
         <xsd:sequence>
           <xsd:element name="name" type="xsd:string" minOccurs="0" maxOccurs="unbounded"/>
         </xsd:sequence>
       </xsd:complexType>
       <xsd:complexType name="plugin_sql">
         <xsd:sequence>
-          <xsd:element name="columns" type="plugin_sql_column"/>
-          <xsd:element name="result_row" type="plugin_sql_result" maxOccurs="unbounded"/>
+          <xsd:element name="columns" type="plugin_sql_column_list"/>
+          <xsd:element name="result_row" type="plugin_sql_result_list" maxOccurs="unbounded"/>
           <xsd:element name="rows_affected" type="xsd:long" minOccurs="0"/>
           <xsd:element name="result_count" type="xsd:long" minOccurs="0"/>
         </xsd:sequence>
@@ -1143,6 +1284,7 @@
           <xsd:element name="raw_http_response" type="xsd:int"             minOccurs="0"/>
           <xsd:element name="raw_http_request" type="xsd:int"              minOccurs="0"/>
           <xsd:element name="use_json_flag"    type="xsd:int"              minOccurs="0"/>
+          <xsd:element name="content_set"      type="content_set"          minOccurs="0"/>
           <!-- When calling RunPlugin and supplying a valid execution_id these fields will be populated. -->
           <xsd:element name="status"           type="xsd:string"           minOccurs="0"/> <!-- The status of the plugin execution: Not Started, Running, Completed, Failed. -->
           <xsd:element name="status_file_content" type="xsd:string"        minOccurs="0"/> <!-- The contents of the status file if supplied in run request. -->
@@ -1163,10 +1305,10 @@
           <xsd:element name="plugin_name"          type="xsd:string"           minOccurs="0"/>
           <xsd:element name="plugin_bundle"        type="xsd:string"           minOccurs="0"/>
           <xsd:element name="plugin_server"        type="xsd:string"           minOccurs="0"/>
-          <xsd:element name="start_hour"           type="xsd:int"              minOccurs="0"/> <!-- if supplied the schedule will only run between start_hour and end_hour -->
+          <xsd:element name="start_hour"           type="xsd:int"              minOccurs="0"/> <!-- if supplied the schedule will only run between start_hour and end_hour: 0 ~ 23 -->
           <xsd:element name="end_hour"             type="xsd:int"              minOccurs="0"/>
-          <xsd:element name="start_date"           type="xsd:int"              minOccurs="0"/> <!-- if supplied the schedule will only run after the specified date -->
-          <xsd:element name="end_date"             type="xsd:int"              minOccurs="0"/> <!-- if supplied the schedule will only run until the specified date -->
+          <xsd:element name="start_date"           type="xsd:string"              minOccurs="0"/> <!-- if supplied the schedule will only run after the specified date -->
+          <xsd:element name="end_date"             type="xsd:string"              minOccurs="0"/> <!-- if supplied the schedule will only run until the specified date -->
           <xsd:element name="run_on_days"          type="xsd:string"           minOccurs="0"/> <!-- If supplied plugin will only run on specified days separated by commas.  As: Mon, Tue, Wed, Thu, Fri, Sat, Sun. -->
           <xsd:element name="run_interval_seconds" type="xsd:int"              minOccurs="0"/> <!-- the interval between executions of the plugin. -->
           <xsd:element name="enabled"              type="xsd:int"              minOccurs="0"/> <!-- Whether or not this schedule is enabled. 1 or 0. -->
@@ -1178,6 +1320,8 @@
           <xsd:element name="last_exit_code"       type="xsd:int"              minOccurs="0"/> <!-- Read Only: Exit code of last run. -->
           <xsd:element name="last_run_text"        type="xsd:string"           minOccurs="0"/> <!-- Read Only: If the plugin is not SQL this will have the output. -->
           <xsd:element name="last_run_sql"         type="plugin_sql"           minOccurs="0"/> <!-- Read Only: SQL output if applicable. -->
+          <xsd:element name="modification_time"    type="xsd:string"           minOccurs="0"/>
+          <xsd:element name="mod_user"        type="user"          minOccurs="0"/>   <!-- Last user to modify this -->
         </xsd:all>
       </xsd:complexType>
       <xsd:complexType name="plugin_schedule_list">
@@ -1251,10 +1395,16 @@
           <xsd:element name="sensors"             type="sensor_list"             minOccurs="0" maxOccurs="unbounded"/>
           <xsd:element name="user"                type="user"                    minOccurs="0" maxOccurs="unbounded"/>
           <xsd:element name="users"               type="user_list"               minOccurs="0" maxOccurs="unbounded"/>
-          <xsd:element name="roles"               type="user_role_list"          minOccurs="0"/>
+          <xsd:element name="user_group"          type="user_group"              minOccurs="0" maxOccurs="unbounded"/>
+          <xsd:element name="user_groups"         type="user_group_list"         minOccurs="0" maxOccurs="unbounded"/>
+          <xsd:element name="solution"            type="solution"                minOccurs="0" maxOccurs="unbounded"/>
+          <xsd:element name="solutions"           type="solution_list"           minOccurs="0"/>
+          <xsd:element name="action_group"        type="action_group"            minOccurs="0" maxOccurs="unbounded"/>
+          <xsd:element name="action_groups"       type="action_group_list"       minOccurs="0"/>
           <xsd:element name="client_status"       type="client_status"           minOccurs="0" maxOccurs="unbounded"/>
           <xsd:element name="system_setting"      type="system_setting"          minOccurs="0" maxOccurs="unbounded"/>
           <xsd:element name="saved_action_approval" type="saved_action_approval" minOccurs="0" maxOccurs="unbounded"/>
+          <xsd:element name="saved_action_approvals" type="saved_action_approval_list" minOccurs="0" maxOccurs="unbounded"/>
           <xsd:element name="system_status"       type="system_status_list"      minOccurs="0"/>
           <xsd:element name="system_settings"     type="system_setting_list"    minOccurs="0"/>
           <xsd:element name="client_count"        type="client_count"            minOccurs="0"/>
@@ -1270,7 +1420,35 @@
           <xsd:element name="computer_groups"     type="computer_group_list"     minOccurs="0"/>
           <xsd:element name="computer_group"      type="computer_group"          minOccurs="0" maxOccurs="unbounded"/>
           <xsd:element name="export_id"           type="xsd:string"              minOccurs="0"/>
+          <xsd:element name="server_info"         type="xsd:string"              minOccurs="0"/>
+          <xsd:element name="content_set"         type="content_set"              minOccurs="0"/>
+          <xsd:element name="content_sets"        type="content_set_list"              minOccurs="0"/>
+          <xsd:element name="content_set_privilege"            type="content_set_privilege"             minOccurs="0"/>
+          <xsd:element name="content_set_privileges"           type="content_set_privilege_list"        minOccurs="0"/>
+          <xsd:element name="content_set_role"                 type="content_set_role"                  minOccurs="0"/>
+          <xsd:element name="content_set_roles"                type="content_set_role_list"             minOccurs="0"/>
+          <xsd:element name="content_set_role_membership"      type="content_set_role_membership"       minOccurs="0"/>
+          <xsd:element name="content_set_role_memberships"     type="content_set_role_membership_list"  minOccurs="0"/>
+          <xsd:element name="content_set_role_privilege"       type="content_set_role_privilege"        minOccurs="0"/>
+          <xsd:element name="content_set_role_privileges"      type="content_set_role_privilege_list"   minOccurs="0"/>
+          <xsd:element name="content_set_user_group_role_membership"  type="content_set_user_group_role_membership"       minOccurs="0"/>
+          <xsd:element name="content_set_user_group_role_memberships" type="content_set_user_group_role_membership_list"  minOccurs="0"/>
+          <xsd:element name="effective_content_set_privileges"        type="effective_content_set_privilege_request"         minOccurs="0"/>
+          <xsd:element name="saved_question_package_specs"     type="saved_question_package_specs"  minOccurs="0"/>
+          <xsd:element name="saved_question_question"          type="saved_question_question"  minOccurs="0"/>
+          <xsd:element name="saved_question_questions"         type="saved_question_question_list"  minOccurs="0"/>
+          <xsd:element name="audit_log"                        type="audit_log"              minOccurs="0"/>
+          <xsd:element name="audit_logs"                       type="audit_log_list"              minOccurs="0"/>
+          <xsd:element name="ldap_sync_connector"              type="ldap_sync_connector"              minOccurs="0"/>
+          <xsd:element name="ldap_sync_connector_list"         type="ldap_sync_connector_list"              minOccurs="0"/>
+          <!-- base 64 encoded import file -->
+          <xsd:element name="import_content"                   type="xsd:string"             minOccurs="0"/>
+          <!-- import conflict details. If conflicts, one returned per object sent with import request -->
+          <xsd:element name="import_conflict_detail"           type="xsd:string" minOccurs="0"/>
+          <xsd:element name="hashed_string"       type="hashed_string"           minOccurs="0" maxOccurs="unbounded"/>
+          <xsd:element name="hashed_strings"      type="hashed_string_list"      minOccurs="0" maxOccurs="unbounded"/>
         </xsd:sequence>
+        <xsd:attribute name="export_version" type="xsd:int"/>
       </xsd:complexType>
       <xsd:complexType name="cache_filter">
         <xsd:all>
@@ -1301,12 +1479,21 @@
             -->
             <xsd:element name="operator"      type="xsd:string"  minOccurs="0"/>
             <xsd:element name="not_flag"      type="xsd:int"     minOccurs="0"/>   <!-- If set, the rows returned will be all the rows that do NOT match this filter definition -->
+            <xsd:element name="and_flag"     type="xsd:int"        minOccurs="0"/> <!-- only used when sub_filters is specified -->
+            <xsd:element name="sub_filters"   type="cache_filter_list"     minOccurs="0"/> <!-- Supported for ResultData only. If specified, all other properties except "not_flag" and "and_flag", will be ignored -->
         </xsd:all>
       </xsd:complexType>
       <xsd:complexType name="cache_filter_list">
         <xsd:sequence>
           <xsd:element name="filter" type="cache_filter" minOccurs="0" maxOccurs="unbounded"/>
         </xsd:sequence>
+      </xsd:complexType>
+      <!-- one option per object in object_list -->
+      <xsd:complexType name="import_conflict_options">
+          <xsd:sequence>
+              <!-- 0 = conflict error. 1 = overwrite. 2 = copy changing name, 3 = ignore. -->
+              <xsd:element name="import_conflict_option" type="xsd:int" minOccurs="0" maxOccurs="unbounded"/>
+          </xsd:sequence>
       </xsd:complexType>
       <xsd:complexType name="options">
         <xsd:all>
@@ -1325,11 +1512,13 @@
           <xsd:element name="export_format"         type="xsd:int"     minOccurs="0"/> <!-- 0 == csv format (backward compatible with console export), 1 == result xml format, similar to normal api use, 2 == CEF format, flattened -->
           <xsd:element name="export_leading_text"   type="xsd:string"  minOccurs="0"/> <!-- when exporting, insert this text at the beginning of each line -->
           <xsd:element name="export_trailing_text"  type="xsd:string"  minOccurs="0"/> <!-- when exporting, append this text at the end of each line -->
+          <xsd:element name="export_hide_csv_header_flag"  type="xsd:int"  minOccurs="0"/> <!-- when exporting in csv format, omit column header -->
           <xsd:element name="flags"                 type="xsd:int"     minOccurs="0"/>
           <xsd:element name="hide_errors_flag"      type="xsd:int"     minOccurs="0"/>
           <xsd:element name="include_answer_times_flag" type="xsd:int" minOccurs="0"/>
           <xsd:element name="row_counts_only_flag"  type="xsd:int"     minOccurs="0"/>
           <xsd:element name="aggregate_over_time_flag" type="xsd:int"  minOccurs="0"/>
+          <xsd:element name="no_result_row_collation_flag" type="xsd:int"   minOccurs="0"/> <!-- If set, it will not stack up identical result rows.  Turn it on to get one row per computer with cid -->
           <xsd:element name="most_recent_flag"      type="xsd:int"     minOccurs="0"/>
           <xsd:element name="include_hashes_flag"   type="xsd:int"     minOccurs="0"/>
           <xsd:element name="hide_no_results_flag"  type="xsd:int"     minOccurs="0"/>
@@ -1357,6 +1546,7 @@
           <xsd:element name="sample_frequency"      type="xsd:int"     minOccurs="0"/>
           <xsd:element name="sample_start"          type="xsd:int"     minOccurs="0"/>
           <xsd:element name="sample_count"          type="xsd:int"     minOccurs="0"/>
+          <xsd:element name="audit_history_size"    type="xsd:int"     minOccurs="0"/> <!-- Used with object types like "audit_log" with type and object id specified, to limit number of entried returned. -->
           <xsd:element name="suppress_scripts"      type="xsd:int"     minOccurs="0"/>
           <xsd:element name="suppress_object_list"  type="xsd:int"     minOccurs="0"/> <!-- when performing add/update operations the original object_list will not be returned if this is set to 1.  defaults to 0 -->
           <!--
@@ -1397,7 +1587,7 @@
                Setting cache_expiration to 0 will expire the cache.
           -->
           <xsd:element name="cache_id" type="xsd:long"        minOccurs="0"/>
-        <xsd:element name="cache_expiration" type="xsd:int" minOccurs="0"/>
+          <xsd:element name="cache_expiration" type="xsd:int" minOccurs="0"/>
           <!--
               cache_sort_fields is used to sort the objects in a particular cache.
               only sorting of top level tags of SOAP objects is supported. (client_status/sensor/etc..)
@@ -1405,13 +1595,323 @@
           -->
           <xsd:element name="cache_sort_fields"    type="xsd:string" minOccurs="0"/>
           <xsd:element name="include_user_details" type="xsd:int"    minOccurs="0"/>
+          <xsd:element name="include_user_owned_object_ids_flag" type="xsd:int"    minOccurs="0"/> <!-- return owned object ID. Administrator only. -->
           <xsd:element name="include_hidden_flag"  type="xsd:int"    minOccurs="0"/>
           <xsd:element name="use_error_objects"    type="xsd:int"    minOccurs="0"/> <!-- on a failed soap request display the error details for a specific object instead of just an exception message -->
           <xsd:element name="use_json"             type="xsd:int"    minOccurs="0"/> <!-- return objects in JSON format if supported -->
           <xsd:element name="json_pretty_print"    type="xsd:int"    minOccurs="0"/> <!-- use readable format for exported JSON objects. -->
+          <xsd:element name="live_snapshot_report_count_threshold"                type="xsd:int" minOccurs="0"/>
+          <xsd:element name="live_snapshot_expiration_seconds"                    type="xsd:int" minOccurs="0"/>
+          <xsd:element name="live_snapshot_always_use_seconds"                    type="xsd:int" minOccurs="0"/>
+          <xsd:element name="live_snapshot_invalidate_report_count_percentage"    type="xsd:int" minOccurs="0"/>
+          <xsd:element name="disable_live_snapshots"  type="xsd:int" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="allow_cdata_base64_encode_flag"  type="xsd:int"    minOccurs="0"/> <!-- The serve will base64 encode the CDATA tag if this flag is on and there is invalid XML character in the result data. When data is encoded, an read-only option "cdata_base64_encoded" will be added as indicator. -->
+          <xsd:element name="cdata_base64_encoded"  type="xsd:int"    minOccurs="0"/> <!-- Read only. See allow_base64_encode_flag for details. -->
+          <xsd:element name="import_conflict_options" type="import_conflict_options" minOccurs="0"/> <!-- Import conflict ignore/overwrite options-->
+          <xsd:element name="import_analyze_conflicts_only" type="xsd:int" minOccurs="0"/>    <!-- 1 if import should only preview conflicts -->
+          <xsd:element name="export_dont_include_related" type="xsd:int" minOccurs="0"/> <!-- 1 if ExportObject should _not_ include related objects -->
+          <xsd:element name="export_omit_soap_envelope" type="xsd:int" minOccurs="1"/>  <!-- 1 if ExportObject should only include the export, with no SOAP envelope -->
+          <xsd:element name="import_existing_ignore_content_set" type="xsd:int" minOccurs="0"/> <!-- 1 if imported objects should stay in current content set if they already exist -->
+          <xsd:element name="saved_question_qids_reissue_flag" type="xsd:int" minOccurs="0"/> <!-- 1 to reissue the specified saved question with group id in "context_id" -->
+          <xsd:element name="saved_question_qids_allow_multiple_flag" type="xsd:int" minOccurs="0"/> <!-- Used to find all question ids (instead of the recent one) for a given saved question id -->
+          <xsd:element name="saved_question_qids_include_expired_flag" type="xsd:int" minOccurs="0"/>
+          <xsd:element name="saved_question_qids_ignore_mr_group_flag" type="xsd:int" minOccurs="0"/> <!-- admin only. Used to find all question ids for a given saved question id -->
         </xsd:all>
       </xsd:complexType>
-      <xsd:element name="tanium_soap_request" type="typens:TaniumSOAPRequest" />
+      <xsd:complexType name="content_set">
+        <xsd:all>
+          <xsd:element name="id" type="xsd:int" minOccurs="1" maxOccurs="1"></xsd:element>
+          <xsd:element name="name" type="xsd:string" minOccurs="1" maxOccurs="1"></xsd:element>
+          <xsd:element name="description" type="xsd:string" minOccurs="1" maxOccurs="1"></xsd:element>
+          <!-- reserved name, typically for use by products as a reserved identifier -->
+          <xsd:element name="reserved_name" type="xsd:string" minOccurs="1" maxOccurs="1"></xsd:element>
+          <xsd:element name="metadata" type="metadata_list" minOccurs="0"/>
+        </xsd:all>
+      </xsd:complexType>
+      <xsd:complexType name="content_set_list">
+        <xsd:sequence>
+          <xsd:element name="content_set" type="content_set" minOccurs="0" maxOccurs="unbounded"></xsd:element>
+        </xsd:sequence>
+      </xsd:complexType>"
+      <xsd:complexType name="content_set_role_privilege_on_role">
+        <xsd:all>
+            <xsd:element name="id" type="xsd:int" minOccurs="1" maxOccurs="1"></xsd:element>
+            <xsd:element name="content_set" type="id_reference" minOccurs="0" maxOccurs="1"></xsd:element>
+            <xsd:element name="content_set_privilege" type="id_reference" minOccurs="1" maxOccurs="1"></xsd:element>
+        </xsd:all>
+      </xsd:complexType>
+      <xsd:complexType name="content_set_role_privilege_on_role_list">
+          <xsd:sequence>
+              <xsd:element name="content_set_role_privilege" type="content_set_role_privilege_on_role" minOccurs="0" maxOccurs="unbounded"></xsd:element>
+          </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="content_set_role">
+        <xsd:all>
+          <xsd:element name="id" type="xsd:int" minOccurs="1" maxOccurs="1"></xsd:element>
+          <xsd:element name="name" type="xsd:string" minOccurs="1" maxOccurs="1"></xsd:element>
+          <xsd:element name="description" type="xsd:string" minOccurs="1" maxOccurs="1"></xsd:element>
+          <!-- reserved name, typically for use by products as a reserved identifier -->
+          <xsd:element name="reserved_name" type="xsd:string" minOccurs="1" maxOccurs="1"></xsd:element>
+          <xsd:element name="metadata" type="metadata_list" minOccurs="0"/>
+          <xsd:element name="deny_flag" type="xsd:int" minOccurs="1" maxOccurs="1"></xsd:element>
+          <xsd:element name="all_content_sets_flag" type="xsd:int" minOccurs="1" maxOccurs="1"></xsd:element>
+          <!-- for add/update only, can be used to replace the content_set_role_privilege objects for this role -->
+          <!-- note that the content_set_role of each content_role_privilege is ignored... containing role specifies that -->
+          <xsd:element name="content_set_role_privileges" type="content_set_role_privilege_on_role_list" minOccurs="0" omitByDefault="1"/>
+          <!-- this allows us to determine what category the role is (reserved, micro-admin, module, advanced (content set) -->
+          <xsd:element name="category" type="xsd:string" minOccurs="1" maxOccurs="1"/>
+        </xsd:all>
+      </xsd:complexType>
+      <xsd:complexType name="content_set_role_list">
+        <xsd:sequence>
+          <xsd:element name="content_set_role" type="content_set_role" minOccurs="0" maxOccurs="unbounded"></xsd:element>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="content_set_role_membership">
+          <xsd:all>
+              <xsd:element name="id" type="xsd:int" minOccurs="1" maxOccurs="1"></xsd:element>
+              <xsd:element name="user" type="user" minOccurs="1" maxOccurs="1"></xsd:element>
+              <xsd:element name="content_set_role" type="id_reference" minOccurs="1" maxOccurs="1"></xsd:element>
+          </xsd:all>
+      </xsd:complexType>
+      <xsd:complexType name="content_set_role_membership_list">
+        <xsd:sequence>
+          <xsd:element name="content_set_role_membership" type="content_set_role_membership" minOccurs="0" maxOccurs="unbounded"></xsd:element>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="content_set_user_group_role_membership">
+          <xsd:all>
+              <xsd:element name="id" type="xsd:int" minOccurs="1" maxOccurs="1"></xsd:element>
+              <xsd:element name="user_group" type="id_reference" minOccurs="1" maxOccurs="1"></xsd:element>
+              <xsd:element name="content_set_role" type="id_reference" minOccurs="1" maxOccurs="1"></xsd:element>
+          </xsd:all>
+      </xsd:complexType>
+      <xsd:complexType name="content_set_user_group_role_membership_list">
+        <xsd:sequence>
+           <xsd:element name="content_set_user_group_role_membership" type="content_set_user_group_role_membership" minOccurs="0" maxOccurs="unbounded"></xsd:element>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="content_set_privilege">
+        <xsd:all>
+            <xsd:element name="id" type="xsd:int" minOccurs="1" maxOccurs="1"></xsd:element>
+            <xsd:element name="name" type="xsd:string" minOccurs="1" maxOccurs="1"></xsd:element>
+            <!-- reserved name, typically for use by products as a reserved identifier -->
+            <xsd:element name="reserved_name" type="xsd:string" minOccurs="1" maxOccurs="1"></xsd:element>
+            <xsd:element name="privilege_type" type="xsd:string" minOccurs="1" maxOccurs="1"></xsd:element>
+            <xsd:element name="privilege_module" type="xsd:string" minOccurs="1" maxOccurs="1"></xsd:element>
+            <xsd:element name="metadata" type="metadata_list" minOccurs="0"/>
+        </xsd:all>
+      </xsd:complexType>
+      <xsd:complexType name="content_set_privilege_list">
+          <xsd:sequence>
+              <xsd:element name="content_set_privilege" type="content_set_privilege" minOccurs="0" maxOccurs="unbounded"></xsd:element>
+          </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="content_set_role_privilege">
+          <xsd:all>
+              <xsd:element name="id" type="xsd:int" minOccurs="1" maxOccurs="1"></xsd:element>
+              <xsd:element name="content_set" type="id_reference" minOccurs="0" maxOccurs="1"></xsd:element>
+              <xsd:element name="content_set_role" type="id_reference" minOccurs="1" maxOccurs="1"></xsd:element>
+              <xsd:element name="content_set_privilege" type="id_reference" minOccurs="1" maxOccurs="1"></xsd:element>
+          </xsd:all>
+      </xsd:complexType>
+      <xsd:complexType name="content_set_role_privilege_list">
+          <xsd:sequence>
+              <xsd:element name="content_set_role_privilege" type="content_set_role_privilege" minOccurs="0" maxOccurs="unbounded"></xsd:element>
+          </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="content_set_privilege_list">
+      <xsd:sequence>
+          <xsd:element name="content_set_privilege" type="content_set_privilege"  minOccurs="0" maxOccurs="unbounded"></xsd:element>
+      </xsd:sequence>
+      </xsd:complexType>
+      <!-- only supports GetObject. Returns effective content set privileges. -->
+      <xsd:complexType name="effective_content_set_privilege">
+        <xsd:all>
+          <xsd:element name="content_set" type="content_set" minOccurs="1" maxOccurs="1"></xsd:element>
+          <xsd:element name="content_set_privilege_list" type="content_set_privilege_list" minOccurs="1" maxOccurs="1"></xsd:element>
+        </xsd:all>
+      </xsd:complexType>
+      <!-- Can optionally specify a user ID to retrieve effective privileges for another user (if admin or content set admin only) -->
+      <xsd:complexType name="effective_content_set_privilege_request">
+        <xsd:all>
+          <xsd:element name="user" type="user" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:all>
+      </xsd:complexType>
+      <xsd:complexType name="effective_content_set_privilege_list">
+        <xsd:sequence>
+           <xsd:element name="effective_content_set_privilege" type="effective_content_set_privilege"  minOccurs="0" maxOccurs="unbounded"></xsd:element>
+        </xsd:sequence>
+      </xsd:complexType>
+        <xsd:complexType name="dashboard">
+            <xsd:all>
+                <xsd:element name="id" type="xsd:int"></xsd:element>
+                <xsd:element name="name" type="xsd:string"></xsd:element>
+                <xsd:element name="user" type="user"></xsd:element>
+                <xsd:element name="public_flag" type="xsd:int"></xsd:element>
+                <xsd:element name="content_set" type="content_set"></xsd:element>
+                <xsd:element name="group" type="group"></xsd:element>
+                <xsd:element name="text" type="xsd:string"></xsd:element>
+                <!-- if present on update, replaces the list of questions based on id, in order -->
+                <xsd:element name="saved_question_list" type="saved_question_list"></xsd:element>
+            </xsd:all>
+        </xsd:complexType>
+        <xsd:complexType name="dashboard_list">
+            <xsd:sequence>
+                <xsd:element name="dashboard" type="dashboard" minOccurs="0" maxOccurs="unbounded"></xsd:element>
+            </xsd:sequence>
+        </xsd:complexType>
+      <xsd:complexType name="dashboard_group">
+          <xsd:all>
+              <xsd:element name="id" type="xsd:int" minOccurs="1"></xsd:element>
+              <xsd:element name="name" type="xsd:string"></xsd:element>
+              <xsd:element name="user" type="user"></xsd:element>
+              <xsd:element name="public_flag" type="xsd:int"></xsd:element>
+              <xsd:element name="editable_flag" type="xsd:int"></xsd:element>
+              <xsd:element name="other_flag" type="xsd:int"></xsd:element>
+              <xsd:element name="text" type="xsd:string"></xsd:element>
+              <xsd:element name="content_set" type="content_set"></xsd:element>
+              <xsd:element name="display_index" type="xsd:int"></xsd:element>
+              <!-- base64 encoded icon image -->
+              <xsd:element name="icon" type="xsd:string"></xsd:element>
+              <!-- if present on update, replaces the list of dashboards based on id, in order -->
+              <xsd:element name="dashboard_list" type="dashboard_list"></xsd:element>
+          </xsd:all>
+      </xsd:complexType>
+      <xsd:complexType name="user_group">
+          <xsd:all>
+              <xsd:element name="id" type="xsd:int" minOccurs="1"></xsd:element>
+              <xsd:element name="name" type="xsd:string"></xsd:element>
+              <xsd:element name="user_list" type="user_list" omitByDefault="1"></xsd:element>
+              <!-- for add/update only, can be used to replace the content_set_user_group_role_membership objects for this user_group -->
+              <xsd:element name="content_set_roles" type="content_set_role_list" minOccurs="0" omitByDefault="1"/>
+              <!-- management rights group -->
+              <xsd:element name="group" type="group" minOccurs="0"></xsd:element>
+              <xsd:element name="deleted_flag"   type="xsd:int" minOccurs="0"></xsd:element>
+          </xsd:all>
+      </xsd:complexType>
+      <xsd:complexType name="user_group_list">
+          <xsd:sequence>
+              <xsd:element name="user_group" type="user_group" minOccurs="0" maxOccurs="unbounded"></xsd:element>
+          </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="solution">
+          <xsd:all>
+              <xsd:element name="id" type="xsd:int"></xsd:element>
+              <xsd:element name="solution_id" type="xsd:string" minOccurs="1"></xsd:element>
+              <xsd:element name="name" type="xsd:string"></xsd:element>
+              <xsd:element name="imported_version" type="xsd:string"></xsd:element>
+              <xsd:element name="signature" type="xsd:string"></xsd:element>
+              <xsd:element name="last_update" type="xsd:string"></xsd:element>
+              <xsd:element name="dup_resolve_type" type="xsd:int"></xsd:element>
+              <xsd:element name="imported_by" type="xsd:string"></xsd:element>
+              <xsd:element name="description" type="xsd:string"></xsd:element>
+              <xsd:element name="category" type="xsd:string"></xsd:element>
+              <xsd:element name="installed_xml_url" type="xsd:string"></xsd:element>
+              <xsd:element name="delete_xml_url" type="xsd:string"></xsd:element>
+              <xsd:element name="deleted_flag" type="xsd:int"></xsd:element>
+          </xsd:all>
+      </xsd:complexType>
+      <xsd:complexType name="solution_list">
+          <xsd:sequence>
+              <xsd:element name="solution" type="solution" minOccurs="0" maxOccurs="unbounded"></xsd:element>
+          </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="action_group">
+          <xsd:all>
+              <xsd:element name="id" type="xsd:int" minOccurs="1"></xsd:element>
+              <xsd:element name="name" type="xsd:string"></xsd:element>
+              <xsd:element name="groups"   type="group_list" minOccurs="0"/>
+              <xsd:element name="and_flag" type="xsd:int"></xsd:element>
+              <!-- if public_flag is off, only administrator can see this action group -->
+              <xsd:element name="public_flag" type="xsd:int"></xsd:element>
+              <!-- user_groups is only valid if public_flag is on. An empty list means all user can see this action group -->
+              <xsd:element name="user_groups" type="user_group_list" minOccurs="0"/>
+              <xsd:element name="deleted_flag" type="xsd:int"></xsd:element>
+          </xsd:all>
+      </xsd:complexType>
+      <xsd:complexType name="action_group_list">
+          <xsd:sequence>
+              <xsd:element name="action_group" type="action_group" minOccurs="0" maxOccurs="unbounded"></xsd:element>
+          </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="saved_question_package_specs">
+          <xsd:all>
+              <xsd:element name="saved_question" type="id_reference" minOccurs="1" maxOccurs="1"></xsd:element>
+              <xsd:element name="packages"       type="package_spec_list" minOccurs="0" maxOccurs="1"></xsd:element>
+          </xsd:all>
+      </xsd:complexType>
+      <xsd:complexType name="saved_question_question">
+          <xsd:all>
+              <!-- Use these options to reissue or filter: context_id, saved_question_qids_reissue_flag, saved_question_qids_allow_multiple_flag, saved_question_qids_include_expired_flag, saved_question_qids_ignore_mr_group_flag-->
+              <xsd:element name="saved_question" type="id_reference" minOccurs="1" maxOccurs="1"></xsd:element>
+              <xsd:element name="questions"       type="question_list" minOccurs="0" maxOccurs="1"></xsd:element>
+          </xsd:all>
+      </xsd:complexType>
+      <xsd:complexType name="saved_question_question_list">
+          <xsd:sequence>
+              <xsd:element name="saved_question_question" type="saved_question_question" minOccurs="0" maxOccurs="unbounded"></xsd:element>
+          </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="ldap_sync_connector_list">
+          <xsd:sequence>
+              <xsd:element name="ldap_sync_connector" type="ldap_sync_connector" minOccurs="0" maxOccurs="unbounded"></xsd:element>
+          </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="ldap_sync_connector">
+          <xsd:all>
+             <xsd:element name="id"   type="xsd:int"   minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="name" type="xsd:string" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="enable" type="xsd:int" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="host"   type="xsd:string" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="port" type="xsd:int" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="secure" type="xsd:int" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="use_ntlm" type="xsd:int" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="ldap_user"   type="xsd:string" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="ldap_password"   type="xsd:string" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="base_users"   type="xsd:string" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="filter_users"   type="xsd:string" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="members_only_flag"   type="xsd:int" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="user_id"   type="xsd:string" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="user_name"   type="xsd:string" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="user_domain"   type="xsd:string" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="user_display_name"   type="xsd:string" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="base_groups"   type="xsd:string" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="filter_groups"   type="xsd:string" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="group_id"   type="xsd:string" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="group_name"   type="xsd:string" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="group_member"   type="xsd:string" minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="last_sync_timestamp" type="xsd:string"  minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="last_sync_result" type="xsd:string"  minOccurs="0" maxOccurs="1"></xsd:element>
+             <xsd:element name="disable_ldap_auth" type="xsd:int" minOccurs="0" maxOccurs="1"></xsd:element>
+          </xsd:all>
+      </xsd:complexType>
+        <xsd:complexType name="computer_id_list">
+            <xsd:sequence>
+                <xsd:element name="id"                 type="xsd:int"         minOccurs="0" maxOccurs="unbounded"/>
+            </xsd:sequence>
+        </xsd:complexType>
+        <xsd:complexType name="hashed_string">
+            <xsd:all>
+                <xsd:element name="sensor_hash"        type="xsd:int"          minOccurs="1" maxOccurs="1"/>         <!-- The hash that identifies which sensor generated this string -->
+                <xsd:element name="value_hash"         type="xsd:int"          minOccurs="1" maxOccurs="1"/>         <!-- The hash that identifies which string value was generated by the sensor -->
+                <xsd:element name="which_computer_id"  type="xsd:int"          minOccurs="0" maxOccurs="1"/>         <!-- If specified, and a collision has occurred, this value will be used to select the first or second of the two collision values, IF POSSIBLE -->
+                <!-- Based on the input values specified above, the values below will be returned: -->
+                <xsd:element name="value"              type="xsd:string"       minOccurs="0" maxOccurs="1"/>         <!-- The actual string value that was generated by the sensor, or an error string, like [result currently unavailable] or [hash collision detected] -->
+                <xsd:element name="error_flag"         type="xsd:int"          minOccurs="0" maxOccurs="1"/>         <!-- If this is non-zero then that indicates that this string value is considered to be an error message and will be filtered out if errors are hidden -->
+                <xsd:element name="collision_flag"     type="xsd:int"          minOccurs="0" maxOccurs="1"/>         <!-- If this is non-zero then that indicates that a hash collision occurred, and there are two string values that result in the same hash -->
+                <xsd:element name="first_collision"    type="xsd:string"       minOccurs="0" maxOccurs="1"/>         <!-- If collision_flag is set, then this will be the value of the first of the two strings that result in the same hash -->
+                <xsd:element name="second_collision"   type="xsd:string"       minOccurs="0" maxOccurs="1"/>         <!-- If collision_flag is set, then this will be the value of the second of the two strings that result in the same hash -->
+                <xsd:element name="first_computer_id"  type="computer_id_list" minOccurs="0" maxOccurs="unbounded"/> <!-- If collision_flag is set, then this MAY indicate the computer ids of clients that generated the first of the two collision values -->
+                <xsd:element name="second_computer_id" type="computer_id_list" minOccurs="0" maxOccurs="unbounded"/> <!-- If collision_flag is set, then this MAY indicate the computer ids of clients that generated the second of the two collision values -->
+            </xsd:all>
+        </xsd:complexType>
+        <xsd:complexType name="hashed_string_list">
+            <xsd:sequence>
+                <xsd:element name="hashed_string"      type="hashed_string"   minOccurs="0" maxOccurs="unbounded"/>
+            </xsd:sequence>
+        </xsd:complexType>
+        <xsd:element name="tanium_soap_request" type="typens:TaniumSOAPRequest" />
       <xsd:element name="return" type="typens:TaniumSOAPResult" />
     </xsd:schema>
   </types>
