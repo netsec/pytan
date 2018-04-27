@@ -1,10 +1,13 @@
 """The main :mod:`pytan` module that provides first level entities for programmatic use."""
+# -*- coding: utf-8 -*-
+
 import datetime
 import io
 import json
 import logging
 import os
 import sys
+import time
 
 my_file = os.path.abspath(__file__)
 my_dir = os.path.dirname(my_file)
@@ -15,8 +18,36 @@ path_adds = [parent_dir]
 try:
     import pytan
     import taniumpy
+    from pytan import arg_tools
 except Exception:
     raise
+
+# TODO(jeo): update requests with requests[security] for osx and windows
+# TODO(jeo): move to __init__ and refer from there
+IS_PY2 = sys.version_info[0] == 2
+"""Coarse Python version differential."""
+
+if IS_PY2:
+    import types
+
+STR = unicode if IS_PY2 else str  # noqa
+"""String type to use, depending on Python version."""
+
+STR_TYPES = (STR, basestring) if IS_PY2 else (STR,)  # noqa
+"""Tuple of valid string types, depending on Python version."""
+
+INT_TYPES = (int, long) if IS_PY2 else (int,)  # noqa
+"""Tuple of valid int types, depending on Python version."""
+
+LIST_TYPES = (list, tuple)
+"""Tuple of valid list types."""
+
+CLS_TYPES = (type, types.ClassType) if IS_PY2 else (type,)  # noqa
+"""Tuple of valid class types, depending on Python version."""
+
+pexc = pytan.exceptions
+mkargs = pytan.utils.mkargs
+argtool = arg_tools.ArgumentTool()
 
 
 class Handler(object):
