@@ -25,14 +25,28 @@ LOG_LEVEL_MAPS = [
         0,
         {
             'stats': 'DEBUG',
-            'method_debug': 'DEBUG',
         },
-        'Sets all loggers to only output at WARNING or above except for stats & method_debug',
+        'Sets all loggers to only output at WARNING or above except for stats',
     ),
     (
         1,
         {
             'pytan': 'INFO',
+            'pytan.handler': 'INFO',
+        },
+        'Pytan handler shows logging at INFO and above',
+    ),
+    (
+        2,
+        {
+            'pytan': 'DEBUG',
+            'pytan.handler': 'DEBUG',
+        },
+        'Pytan handler shows logging at DEBUG and above',
+    ),
+    (
+        3,
+        {
             'pytan.pollers.QuestionPoller': 'INFO',
             'pytan.pollers.ActionPoller': 'INFO',
             'pytan.pollers.SSEPoller': 'INFO',
@@ -40,10 +54,9 @@ LOG_LEVEL_MAPS = [
         'Pytan poller loggers show output at INFO or above',
     ),
     (
-        2,
+        4,
         {
             'pytan': 'DEBUG',
-            'pytan.handler': 'INFO',
             'pytan.pollers.QuestionPoller.progress': 'INFO',
             'pytan.pollers.ActionPoller.progress': 'INFO',
             'pytan.pollers.SSEPoller.progress': 'INFO',
@@ -51,15 +64,11 @@ LOG_LEVEL_MAPS = [
             'pytan.pollers.ActionPoller': 'DEBUG',
             'pytan.pollers.SSEPoller': 'DEBUG',
         },
-        (
-            'Pytan handler logger show output at INFO or above, poller logs at DEBUG or above, '
-            'and poller progress logs at INFO or above'
-        ),
+        'poller logs at DEBUG or above, and poller progress logs at INFO or above',
     ),
     (
-        3,
+        5,
         {
-            'pytan.handler': 'DEBUG',
             'pytan.sessions.Session': 'INFO',
             'pytan.pollers.QuestionPoller.progress': 'DEBUG',
             'pytan.pollers.ActionPoller.progress': 'DEBUG',
@@ -68,13 +77,10 @@ LOG_LEVEL_MAPS = [
             'pytan.pollers.ActionPoller.resolver': 'INFO',
             'pytan.pollers.SSEPoller.resolver': 'INFO',
         },
-        (
-            'Pytan handler logger show output at DEBUG or above, poller progress '
-            'at DEBUG or above, and poller resolver at INFO or above'
-        ),
+        'poller progress at DEBUG or above, and poller resolver at INFO or above',
     ),
     (
-        4,
+        6,
         {
             'pytan.handler.ask_manual': 'DEBUG',
             'pytan.pollers.QuestionPoller.resolver': 'DEBUG',
@@ -84,14 +90,14 @@ LOG_LEVEL_MAPS = [
         'Pytan ask manual logger show output at DEBUG or above and poller resolver at DEBUG or above',
     ),
     (
-        5,
+        7,
         {
             'pytan.handler.ask_manual_human': 'DEBUG',
         },
         'Pytan ask manual human logger show output at DEBUG or above',
     ),
     (
-        6,
+        8,
         {
             'pytan.handler.timing': 'DEBUG',
             'XMLCleaner': 'DEBUG',
@@ -99,42 +105,42 @@ LOG_LEVEL_MAPS = [
         'Pytan timing and XMLCleaner loggers show output at DEBUG or above',
     ),
     (
-        7,
+        9,
         {
             'pytan.sessions.Session': 'DEBUG',
         },
         'Taniumpy session loggers show output at DEBUG or above',
     ),
     (
-        8,
+        10,
         {
             'pytan.sessions.Session.auth': 'DEBUG',
         },
         'PyTan session authentication loggers show output at DEBUG or above',
     ),
     (
-        9,
+        11,
         {
             'pytan.sessions.Session.http': 'DEBUG',
         },
         'PyTan session http loggers show output at DEBUG or above',
     ),
     (
-        10,
+        12,
         {
             'pytan.handler.prettybody': 'DEBUG',
         },
         'Pytan handler pretty XML body loggers show output at DEBUG or above',
     ),
     (
-        11,
+        13,
         {
             'pytan.sessions.Session.http.body': 'DEBUG',
         },
         'PyTan session raw XML body loggers show output at DEBUG or above',
     ),
     (
-        12,
+        14,
         {
             'requests': 'DEBUG',
             'requests.packages.urllib3': 'DEBUG',
