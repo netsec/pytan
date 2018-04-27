@@ -2446,11 +2446,6 @@ class Handler(object):
         found : :class:`taniumpy.object_types.base.BaseType`
            * full object that was found
         """
-        try:
-            search_str = '; '.join([str(x) for x in obj])
-        except Exception:
-            search_str = obj
-
         self.mylog.debug("Searching for {}".format(search_str))
 
         kwargs['suppress_object_list'] = kwargs.get('suppress_object_list', 1)
@@ -2464,12 +2459,7 @@ class Handler(object):
         try:
             found = self.session.find(obj=obj, **clean_kwargs)
         except Exception as e:
-            self.mylog.debug(e)
-            err = "No results found searching for {} (error: {})!!".format
-            raise pytan.exceptions.HandlerError(err(search_str, e))
 
-        if pytan.utils.empty_obj(found):
-            err = "No results found searching for {}!!".format
             raise pytan.exceptions.HandlerError(err(search_str))
 
         self.mylog.debug("Found {}".format(found))
