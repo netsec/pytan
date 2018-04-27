@@ -2252,3 +2252,13 @@ def vig_decode(key, string):
         decoded_chars.append(encoded_c)
     decoded_string = "".join(decoded_chars)
     return decoded_string
+
+
+def mkargs(orig_kwargs, **new_kwargs):
+    """Make a new kwargs dict with orig_kwargs and **new_kwargs."""
+    margs = {}
+    margs.update(orig_kwargs)
+    margs.update(new_kwargs)
+    if orig_kwargs.get('pytan_help', ""):
+        margs['pytan_help'] = orig_kwargs.get('pytan_help', "")
+    return margs
