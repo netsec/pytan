@@ -935,6 +935,9 @@ class Session(object):
         req_args['debug'] = kwargs.get('debug', self.HTTP_DEBUG)
         req_args['pytan_help'] = kwargs.get('pytan_help', '')
 
+        if req_args['pytan_help']:
+            self.mylog.info("pytan_help: {}".format(req_args['pytan_help']))
+
         auth_retry = kwargs.get('auth_retry', self.HTTP_AUTH_RETRY)
         retry_count = kwargs.get('retry_count', self.HTTP_RETRY_COUNT)
 
@@ -1036,6 +1039,9 @@ class Session(object):
         )
         req_args['debug'] = kwargs.get('debug', self.HTTP_DEBUG)
         req_args['pytan_help'] = kwargs.get('pytan_help', '')
+
+        if req_args['pytan_help']:
+            self.mylog.info("pytan_help: {}".format(req_args['pytan_help']))
 
         auth_retry = kwargs.get('auth_retry', self.HTTP_AUTH_RETRY)
         retry_count = kwargs.get('retry_count', self.HTTP_RETRY_COUNT)
@@ -1877,6 +1883,14 @@ class Session(object):
         self.LAST_RESPONSE_INFO['sent'] = sent
 
         response_body = self.http_post(**req_args)
+
+        # DEBUG BITS
+        # print(pytan.utils.xml_pretty(request_body))
+        # a = pytan.utils.xmltodict.parse(response_body)
+        # b = a['soap:Envelope']['soap:Body']['t:return']['result_object']
+        # c = b[b.keys()[0]]
+        # d = c[c.keys()[0]]
+        # print("# of result objects returned {}".format(len(d)))
 
         received = datetime.utcnow()
         self.LAST_RESPONSE_INFO['received'] = received
