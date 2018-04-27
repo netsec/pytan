@@ -1967,7 +1967,6 @@ class Handler(object):
         show_console = argtool.argbool(key="show_console", kwargs=kwargs, default=True)
         # overwrite value if previous name exits, can be overridden by each property dict too
         overwrite = argtool.argbool(key="overwrite", kwargs=kwargs, default=False)
-
         # TODO(jeo): add pytan property arg, default=True
 
         laargs = mkargs({}, attr=props_attr, tantype="MetadataList")
@@ -1987,55 +1986,56 @@ class Handler(object):
 
         for prop in props:
             prop = argtool.argdict(key="prop", value=prop, emptyok=False)
+            pdict = {}
+            pdict.update(prop)
+            pdict["name"] = argtool.argstr(key="name", kwargs=pdict, req=True, emptyok=False)
+            pdict["value"] = prop.get("value", "")
+            pdict["admin"] = argtool.argbool(key="admin", kwargs=pdict, default=False)
+            pdict["overwrite"] = argtool.argbool(key="overwrite", kwargs=pdict, default=overwrite)
+            pdict["show_console"] = argtool.argbool(key="show_console", kwargs=pdict, default=show_console)
+            pdict["show_prefix"] = argtool.argstr(key="show_prefix", kwargs=pdict, default=show_prefix)
 
-            prop["name"] = argtool.argstr(key="name", kwargs=prop, req=True, emptyok=False)
-            prop["value"] = prop.get("value", "")
-            prop["admin"] = argtool.argbool(key="admin", kwargs=prop, default=False)
-            prop["overwrite"] = argtool.argbool(key="overwrite", kwargs=prop, default=overwrite)
-            prop["show_console"] = argtool.argbool(key="show_console", kwargs=prop, default=show_console)
-            prop["show_prefix"] = argtool.argstr(key="show_prefix", kwargs=prop, default=show_prefix)
+            fix_name = pdict["show_console"] and pdict["show_prefix"]
+            pdict["name"] = "{show_prefix}.{name}".format(**pdict) if fix_name else pdict["name"]
 
-            fix_name = prop["show_console"] and prop["show_prefix"]
-            prop["name"] = "{show_prefix}.{name}".format(**prop) if fix_name else prop["name"]
-
-            exists = [x for x in props_obj if x.name == prop["name"]]
-            prop["obj"] = prop_obj = exists[0] if exists else False
-            prop["objs"] = props_obj
-            prop["exists"] = "existing property" if exists else "non-existing property"
+            exists = [x for x in props_obj if x.name == pdict["name"]]
+            pdict["obj"] = prop_obj = exists[0] if exists else False
+            pdict["objs"] = props_obj
+            pdict["exists"] = "existing property" if exists else "non-existing property"
 
             if prop_obj:
-                prop["i"] = "Name {obj.name!r} Value: {obj.value!r}".format(**prop)
+                pdict["i"] = "Name {obj.name!r} Value: {obj.value!r}".format(**pdict)
 
-                if prop["value"] is None:
-                    m = "Deleting {exists} {i} from {objs}".format(**prop)
+                if pdict["value"] is None:
+                    m = "Deleting {exists} {i} from {objs}".format(**pdict)
                     self.mylog.warning(m)
 
                     props_obj.item.remove(prop_obj)
                     props_obj.changed = True
-                elif prop_obj.value != prop["value"]:
-                    prop["oa"] = "overwriting" if prop["overwrite"] else "NOT overwriting"
-                    prop["ow"] = "Overwrite={overwrite}, {oa}".format(**prop)
-                    m = "{ow} {exists} {i} with new Value {value!r}".format(**prop)
-                    if prop["overwrite"]:
+                elif prop_obj.value != pdict["value"]:
+                    pdict["oa"] = "overwriting" if pdict["overwrite"] else "NOT overwriting"
+                    pdict["ow"] = "Overwrite={overwrite}, {oa}".format(**pdict)
+                    m = "{ow} {exists} {i} with new Value {value!r}".format(**pdict)
+                    if pdict["overwrite"]:
                         self.mylog.info(m)
 
-                        prop_obj.value = prop["value"]
+                        prop_obj.value = pdict["value"]
                         props_obj.changed = True
                     else:
                         self.mylog.warning(m)
             else:
-                if prop["value"] is None:
-                    prop["i"] = "Name: {name!r}".format(**prop)
-                    m = "Unable to delete {exists} {i} from {objs}".format(**prop)
+                if pdict["value"] is None:
+                    pdict["i"] = "Name: {name!r}".format(**pdict)
+                    m = "Unable to delete {exists} {i} from {objs}".format(**pdict)
                     self.mylog.warning(m)
                 else:
-                    prop["obj"] = prop_obj = taniumpy.MetadataItem()
-                    prop_obj.name = prop["name"]
-                    prop_obj.value = prop["value"]
-                    prop_obj.admin_flag = prop["admin"]
+                    pdict["obj"] = prop_obj = taniumpy.MetadataItem()
+                    prop_obj.name = pdict["name"]
+                    prop_obj.value = pdict["value"]
+                    prop_obj.admin_flag = pdict["admin"]
 
-                    prop["i"] = "Name {obj.name!r} Value: {obj.value!r}".format(**prop)
-                    m = "Adding new property {i} to {objs}".format(**prop)
+                    pdict["i"] = "Name {obj.name!r} Value: {obj.value!r}".format(**pdict)
+                    m = "Adding new property {i} to {objs}".format(**pdict)
                     self.mylog.info(m)
 
                     props_obj.append(prop_obj)
