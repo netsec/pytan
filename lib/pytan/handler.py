@@ -1915,52 +1915,27 @@ class Handler(object):
                 self.mylog.info(m(gn=merged_name, g=group_obj))
         return group_obj
 
-    # TODO(jeo): flush out docstring, add params
-    def update_props_obj(self, props_obj, **kwargs):
-        """Update a props_obj with props."""
-        # list of dicts with property definitions
-        props = argtool.arglist(key="props", kwargs=kwargs, default=[])
-        # prefix used for all properties if show=True, can be overridden by each property dict too
-        prefix = argtool.argstr(key="prefix", default="", kwargs=kwargs)
-        # show in console, can be overridden by each property dict too
-        show = argtool.argbool(key="show", kwargs=kwargs, default=True)
+    # TODO(jeo): docstring
+    def log_obj_listattr(self, obj, attr, tantype, ltype, subjoin="\n\t", lvl="debug"):
+        """Later."""
+        attr_val = self.get_attr_val(obj=obj, attr=attr, tantype=tantype)
+        if attr_val:
+            attrtxt = (subjoin + subjoin.join(["{}".format(x.simple_dict()) for x in attr_val]))
+        else:
+            attrtxt = "NONE!"
+        m = "{ltype} for attribute {a!r} of {o}: {ptxt}".format(o=obj, a=attr, ltype=ltype, ptxt=attrtxt)
+        log = getattr(self.mylog, lvl)
+        log(m)
 
-        # TODO(jeo): add pytan property arg, default=True
-        # TODO(jeo): add overwrite support
-        # TODO(jeo): if md_obj supplied, if True replace all properties in md_obj, if False append?
-        # TODO(jeo): test what happens when prop key is added of same name when one already exists
-        # TODO(jeo): allow passthru of None for props_obj
+    # TODO(jeo): docstring
+    def get_attr_val(self, obj, attr, tantype):
+        """Later."""
+        attr_def = getattr(taniumpy, tantype)
+        attr_val = getattr(obj, attr, attr_def()) or attr_def()
+        return attr_val
 
-        for prop in props:
-            prop = argtool.argdict(key="prop", value=prop, emptyok=False)
-
-            prop["name"] = argtool.argstr(key="name", kwargs=prop, req=True)
-            prop["value"] = argtool.argstr(key="value", kwargs=prop, req=True)
-            prop["admin"] = argtool.argbool(key="admin", kwargs=prop, default=False)
-            prop["show"] = argtool.argbool(key="show", kwargs=prop, default=show)
-            prop["prefix"] = argtool.argstr(key="prefix", kwargs=prop, default=prefix)
-
-            prop_args = "Adding property with arguments: {p} to {pl}".format(p=prop, pl=props_obj)
-            self.mylog.debug(prop_args)
-
-            if prop["show"] and not prop["prefix"]:
-                w1 = (
-                    "Property name={name!r}, value {value!r} has show={show!r}, "
-                    "but prefix={prefix!r} is empty, console will not see!"
-                ).format(**prop)
-                self.mylog.warning(w1)
-
-            if prop["show"] and prop["prefix"]:
-                prop["name"] = "{}.{}".format(prop["prefix"], prop["name"])
-
-            prop_obj = taniumpy.MetadataItem()
-            prop_obj.name = prop["name"]
-            prop_obj.value = prop["value"]
-            prop_obj.admin_flag = prop["admin"]
-            props_obj.append(prop_obj)
-        return props_obj
-
-    def add_props_obj(self, obj, **kwargs):
+    # TODO(jeo): docstring
+    def mod_obj_props(self, obj, **kwargs):
         """Get a properties from props as a metadata object.
 
         properties being MetadataList list object containing MetadataItem objects.
@@ -1979,43 +1954,120 @@ class Handler(object):
            Any other MetadataItem will not be showed in the console.
          - TODO: add others
         """
-        # TODO(jeo): flush out docstring, add params
         # metadata (property) list to append to, or if not provided, create a new one
-        prop_attr = kwargs.get("prop_attr", "metadata")
+        # TODO(jeo): throw error if obj has no props_attr attribute
+        props_attr = kwargs.get("props_attr", "metadata")
+        # list of dicts with property definitions
+        props = argtool.arglist(key="props", kwargs=kwargs, default=[])
+        # wipe all properties before adding props
+        props_wipe = argtool.argbool(key="props_wipe", kwargs=kwargs, default=False)
+        # prefix used for all properties if show=True, can be overridden by each property dict too
+        show_prefix = argtool.argstr(key="show_prefix", default="", kwargs=kwargs)
+        # show in console, can be overridden by each property dict too
+        show_console = argtool.argbool(key="show_console", kwargs=kwargs, default=True)
+        # overwrite value if previous name exits, can be overridden by each property dict too
+        overwrite = argtool.argbool(key="overwrite", kwargs=kwargs, default=False)
 
-        # TODO(jeo): throw error if obj has no prop_attr attribute
-        props_obj = getattr(obj, prop_attr, taniumpy.MetadataList()) or taniumpy.MetadataList()
-        margs = mkargs(kwargs, props_obj=props_obj)
-        props_obj = self.update_props_obj(**margs)
-        setattr(obj, prop_attr, props_obj)
+        # TODO(jeo): add pytan property arg, default=True
+
+        laargs = mkargs({}, attr=props_attr, tantype="MetadataList")
+        props_obj = self.get_attr_val(obj=obj, attr=props_attr, tantype="MetadataList")
+        props_obj.changed = False
+
+        if props_wipe and props_obj:
+            self.log_obj_listattr(obj=obj, ltype="Deleting all properties", lvl="warning", **laargs)
+            props_obj = taniumpy.MetadataList()
+            props_obj.changed = True
+        elif not props_wipe:
+            self.log_obj_listattr(obj=obj, ltype="Current properties", **laargs)
+
+        if not props:
+            m = "No properties supplied, not changing {ol} for {o}".format(o=obj, ol=props_obj)
+            self.mylog.debug(m)
+
+        for prop in props:
+            prop = argtool.argdict(key="prop", value=prop, emptyok=False)
+
+            prop["name"] = argtool.argstr(key="name", kwargs=prop, req=True, emptyok=False)
+            prop["value"] = prop.get("value", "")
+            prop["admin"] = argtool.argbool(key="admin", kwargs=prop, default=False)
+            prop["overwrite"] = argtool.argbool(key="overwrite", kwargs=prop, default=overwrite)
+            prop["show_console"] = argtool.argbool(key="show_console", kwargs=prop, default=show_console)
+            prop["show_prefix"] = argtool.argstr(key="show_prefix", kwargs=prop, default=show_prefix)
+
+            fix_name = prop["show_console"] and prop["show_prefix"]
+            prop["name"] = "{show_prefix}.{name}".format(**prop) if fix_name else prop["name"]
+
+            exists = [x for x in props_obj if x.name == prop["name"]]
+            prop["obj"] = prop_obj = exists[0] if exists else False
+            prop["objs"] = props_obj
+            prop["exists"] = "existing property" if exists else "non-existing property"
+
+            if prop_obj:
+                prop["i"] = "Name {obj.name!r} Value: {obj.value!r}".format(**prop)
+
+                if prop["value"] is None:
+                    m = "Deleting {exists} {i} from {objs}".format(**prop)
+                    self.mylog.warning(m)
+
+                    props_obj.item.remove(prop_obj)
+                    props_obj.changed = True
+                elif prop_obj.value != prop["value"]:
+                    prop["oa"] = "overwriting" if prop["overwrite"] else "NOT overwriting"
+                    prop["ow"] = "Overwrite={overwrite}, {oa}".format(**prop)
+                    m = "{ow} {exists} {i} with new Value {value!r}".format(**prop)
+                    if prop["overwrite"]:
+                        self.mylog.info(m)
+
+                        prop_obj.value = prop["value"]
+                        props_obj.changed = True
+                    else:
+                        self.mylog.warning(m)
+            else:
+                if prop["value"] is None:
+                    prop["i"] = "Name: {name!r}".format(**prop)
+                    m = "Unable to delete {exists} {i} from {objs}".format(**prop)
+                    self.mylog.warning(m)
+                else:
+                    prop["obj"] = prop_obj = taniumpy.MetadataItem()
+                    prop_obj.name = prop["name"]
+                    prop_obj.value = prop["value"]
+                    prop_obj.admin_flag = prop["admin"]
+
+                    prop["i"] = "Name {obj.name!r} Value: {obj.value!r}".format(**prop)
+                    m = "Adding new property {i} to {objs}".format(**prop)
+                    self.mylog.info(m)
+
+                    props_obj.append(prop_obj)
+                    props_obj.changed = True
+
+        if props_obj.changed:
+            # update attr on obj
+            setattr(obj, props_attr, props_obj)
+
+            # TODO(jeo): create _save method that re-fetches after save
+            # save the updates to obj
+            margs = mkargs(kwargs, obj=obj)
+            obj = self.session.save(**margs)
+
+            # refetch obj after save
+            margs = mkargs(kwargs, obj=obj)
+            obj = self.session.find(**margs)
+
+            self.log_obj_listattr(obj=obj, ltype="Updated properties", **laargs)
         return obj
 
-    def add_props_user(self, **kwargs):
+    # TODO(jeo): docstring
+    def mod_user_props(self, user, **kwargs):
         """Add properties to a user by name or object."""
-        name = argtool.argstr(key="prefix", default="", kwargs=kwargs)
-        user = kwargs.get("user", None)
+        margs = mkargs(kwargs, user=user)
+        user_obj = self.get_user_obj(**margs)
 
-        # TODO(jeo): if not user and not name, throw error
-        if not user and name:
-            margs = mkargs(kwargs, objtype="user", name=name)
-            user = self.get(**margs)
+        margs = mkargs(kwargs, show_prefix='TConsole.User.Property', obj=user_obj)
+        user_obj = self.mod_obj_props(**margs)
+        return user_obj
 
-        margs = mkargs(kwargs, prefix='TConsole.User.Property', obj=user)
-        user = self.add_props_obj(**margs)
-
-        # TODO(jeo): only do save if properties updated
-        if user.metadata:
-            margs = mkargs(kwargs, obj=user)
-            user = self.session.save(**margs)
-
-        if user.metadata:
-            j = "\n\t"
-            a = j + j.join(["Name: {p.name!r}, Value: {p.value!r}".format(p=p) for p in user.metadata])
-            m = "{u} updated with properties: {a}".format(u=user, a=a)
-            self.mylog.info(m)
-        return user
-
-    # TODO(jeo): test and write scripts
+    # TODO(jeo): docstring
     def create_user(self, name, **kwargs):
         """Create a user object with properties compute groups, and RBAC roles.
 
@@ -2039,7 +2091,7 @@ class Handler(object):
             * each dict in props list optional keys:
                 * key 'admin': bool, default: False, unknown as of yet
                 * key 'show': bool, default: True, show property in console
-                * key 'prefix": str, default: 'TConsole.User.Property', prefix to add to property name
+                * key 'show_prefix": str, default: 'TConsole.User.Property', show_prefix to add to property name
                   to have it show in console if show=True
 
         Returns
@@ -2091,7 +2143,7 @@ class Handler(object):
         self.mylog.info(m)
 
         margs = mkargs(kwargs, user=user)
-        user = self.add_props_user(**margs)
+        user = self.mod_user_props(**margs)
 
         # role_names = val_arg_str(kw=kwargs, n='role_names')
         # margs = mkargs(kwargs, name=name, role_names=role_names, user_obj=user_obj)
@@ -2099,7 +2151,7 @@ class Handler(object):
         # TODO(jeo): create export_for_create_user()
         return user
 
-    # TODO(jeo): flush out docstring, add params
+    # TODO(jeo): docstring
     def find_role_match(self, role, attr, **kwargs):
         """Not yet documented."""
         aargs = mkargs(kwargs, objtype="content_set_role")
@@ -2123,6 +2175,7 @@ class Handler(object):
 
     # TODO(jeo): add type checking to ensure obj is a taniumpy non list
     # TODO(jeo): and objlist is a list of taniumpy non list
+    # TODO(jeo): docstring
     def obj_in_objlist(self, obj, objlist, **kwargs):
         """Check if obj exists in objlist already."""
         compare_json = argtool.argbool(key="compare_json", kwargs=kwargs, default=True)
@@ -2152,7 +2205,7 @@ class Handler(object):
                 self.mylog.warning(m)
         return exists
 
-    # TODO(jeo): flush out docstring, add params
+    # TODO(jeo): docstring
     def find_roles(self, **kwargs):
         """Find ContentSetRoles that match roles.
 
@@ -2225,7 +2278,7 @@ class Handler(object):
 
     # TODO(jeo): move to argtool
     def check_type(self, obj, vt, src_key, src):
-        """Throw exception that obj must be one of good."""
+        """Throw exception if obj is not an instance of vt."""
         if not isinstance(obj, tuple(vt)):
             j = "\n\t"
             vtxt = j + j.join(["{}".format(x) for x in vt])
@@ -2233,6 +2286,7 @@ class Handler(object):
             m = m.format(sk=src_key, src=src, obj=obj, t=type(obj), vt=vtxt)
             raise pexc.HandlerError(m)
 
+    # TODO(jeo): docstring
     def get_user_obj(self, user, **kwargs):
         """Find a user object based on user."""
         vt = [taniumpy.User] + list(STR_TYPES) + list(INT_TYPES)
@@ -2271,7 +2325,7 @@ class Handler(object):
             ret = self.get_all(**margs)
         return ret
 
-    # TODO(jeo): flush out docstring, add params
+    # TODO(jeo): docstring
     def mod_roles_user(self, user, **kwargs):
         """Modify (add or remove) content set roles to user."""
         add_roles = argtool.arglist(key="add_roles", kwargs=kwargs, default=[])
@@ -2339,6 +2393,7 @@ class Handler(object):
 
         return ret
 
+    # TODO(jeo): docstring
     def user_role_memberships(self, user, **kwargs):
         """Find all roles user is currently a member of."""
         all_roles = self.argget(kwargs, "all_roles", "content_set_role")
@@ -2367,6 +2422,7 @@ class Handler(object):
 
     # TODO(jeo): what does API do when you submit a ContentSetRoleMembership that already exists?
     # TODO(jeo): what does API do when you submit multiple CSRM's?
+    # TODO(jeo): docstring
     def add_user_role_membership(self, user_obj, role_obj, **kwargs):
         """Create a ContentSetRoleMembership object that ties a User's ID to a ContentSetRole ID."""
         role_ref = taniumpy.IdReference()
