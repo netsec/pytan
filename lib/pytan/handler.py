@@ -50,6 +50,11 @@ mkargs = pytan.utils.mkargs
 argtool = arg_tools.ArgumentTool()
 
 
+def in_list(o, ol):
+    """Later."""
+    return o.to_json(o) in [x.to_json(x) for x in ol]
+
+
 class Handler(object):
     """Creates a connection to a Tanium SOAP Server on host:port.
 
@@ -1840,7 +1845,7 @@ class Handler(object):
         self.mylog.info(m(group_obj.name, group_obj.id, group_obj.text))
         return group_obj
 
-    # TODO(jeo): test
+    """3.0.0 BEGIN"""
     def get_user_group(self, **kwargs):
         """Return a group for updating a user object with a group_id.
 
@@ -1915,26 +1920,7 @@ class Handler(object):
                 self.mylog.info(m(gn=merged_name, g=group_obj))
         return group_obj
 
-    # TODO(jeo): docstring
-    def log_obj_listattr(self, obj, attr, tantype, ltype, subjoin="\n\t", lvl="debug"):
-        """Later."""
-        attr_val = self.get_attr_val(obj=obj, attr=attr, tantype=tantype)
-        if attr_val:
-            attrtxt = (subjoin + subjoin.join(["{}".format(x.simple_dict()) for x in attr_val]))
-        else:
-            attrtxt = "NONE!"
-        m = "{ltype} for attribute {a!r} of {o}: {ptxt}".format(o=obj, a=attr, ltype=ltype, ptxt=attrtxt)
-        log = getattr(self.mylog, lvl)
-        log(m)
-
-    # TODO(jeo): docstring
-    def get_attr_val(self, obj, attr, tantype):
-        """Later."""
-        attr_def = getattr(taniumpy, tantype)
-        attr_val = getattr(obj, attr, attr_def()) or attr_def()
-        return attr_val
-
-    # TODO(jeo): docstring
+    # TODO(jeo): add pytan property arg, default=True
     def mod_obj_props(self, obj, **kwargs):
         """Get a properties from props as a metadata object.
 
@@ -1954,35 +1940,37 @@ class Handler(object):
            Any other MetadataItem will not be showed in the console.
          - TODO: add others
         """
-        # metadata (property) list to append to, or if not provided, create a new one
-        # TODO(jeo): throw error if obj has no props_attr attribute
-        props_attr = kwargs.get("props_attr", "metadata")
-        # list of dicts with property definitions
+        props_attr = argtool.argstr(key="props_attr", kwargs=kwargs, default="metadata")
         props = argtool.arglist(key="props", kwargs=kwargs, default=[])
-        # wipe all properties before adding props
         props_wipe = argtool.argbool(key="props_wipe", kwargs=kwargs, default=False)
-        # prefix used for all properties if show=True, can be overridden by each property dict too
         show_prefix = argtool.argstr(key="show_prefix", default="", kwargs=kwargs)
-        # show in console, can be overridden by each property dict too
         show_console = argtool.argbool(key="show_console", kwargs=kwargs, default=True)
-        # overwrite value if previous name exits, can be overridden by each property dict too
         overwrite = argtool.argbool(key="overwrite", kwargs=kwargs, default=False)
-        # TODO(jeo): add pytan property arg, default=True
 
-        laargs = mkargs({}, attr=props_attr, tantype="MetadataList")
-        props_obj = self.get_attr_val(obj=obj, attr=props_attr, tantype="MetadataList")
+        if not hasattr(obj, props_attr):
+            m = "{o} has no attribute: {p}".format(o=obj, p=props_attr)
+            raise pexc.HandlerError(m)
+
+        props_obj = getattr(obj, props_attr) or taniumpy.MetadataList()
         props_obj.changed = False
 
+        ptmpl = "property Name {prop_obj.name!r} Value: {prop_obj.value!r}".format
+
         if props_wipe and props_obj:
-            self.log_obj_listattr(obj=obj, ltype="Deleting all properties", lvl="warning", **laargs)
+            m = "Due to 'props_wipe'=True, DELETING {pi} from {o} ".format
+            l = self.mylog.warning
+            [l(m(pi=ptmpl(prop_obj=p), o=obj)) for p in props_obj]
             props_obj = taniumpy.MetadataList()
             props_obj.changed = True
-        elif not props_wipe:
-            self.log_obj_listattr(obj=obj, ltype="Current properties", **laargs)
+
+        m = "CURRENT {pi} on {o} ".format
+        l = self.mylog.debug
+        [l(m(pi=ptmpl(prop_obj=p), o=obj)) for p in props_obj]
 
         if not props:
             m = "No properties supplied, not changing {ol} for {o}".format(o=obj, ol=props_obj)
             self.mylog.debug(m)
+            return obj
 
         for prop in props:
             prop = argtool.argdict(key="prop", value=prop, emptyok=False)
@@ -1999,75 +1987,58 @@ class Handler(object):
             pdict["name"] = "{show_prefix}.{name}".format(**pdict) if fix_name else pdict["name"]
 
             exists = [x for x in props_obj if x.name == pdict["name"]]
-            pdict["obj"] = prop_obj = exists[0] if exists else False
-            pdict["objs"] = props_obj
-            pdict["exists"] = "existing property" if exists else "non-existing property"
+            pdict["prop_obj"] = exists[0] if exists else False
+            pdict["props_obj"] = props_obj
+            pdict["etxt"] = "existing property" if exists else "non-existing property"
 
-            if prop_obj:
-                pdict["i"] = "Name {obj.name!r} Value: {obj.value!r}".format(**pdict)
-
+            if pdict["prop_obj"]:
+                pdict["pi"] = ptmpl(**pdict)
                 if pdict["value"] is None:
-                    m = "Deleting {exists} {i} from {objs}".format(**pdict)
+                    m = "Deleting {etxt} {pi} from {props_obj}".format(**pdict)
                     self.mylog.warning(m)
-
-                    props_obj.item.remove(prop_obj)
+                    props_obj.item.remove(pdict["prop_obj"])
                     props_obj.changed = True
-                elif prop_obj.value != pdict["value"]:
-                    pdict["oa"] = "overwriting" if pdict["overwrite"] else "NOT overwriting"
-                    pdict["ow"] = "Overwrite={overwrite}, {oa}".format(**pdict)
-                    m = "{ow} {exists} {i} with new Value {value!r}".format(**pdict)
+                elif pdict["prop_obj"].value != pdict["value"]:
+                    m = "Because overwrite={overwrite}, {vv} {etxt} {pi} with new Value {value!r}"
                     if pdict["overwrite"]:
-                        self.mylog.info(m)
-
-                        prop_obj.value = pdict["value"]
+                        self.mylog.warning(m.format(vv="OVERWRITING", **pdict))
+                        pdict["prop_obj"].value = pdict["value"]
                         props_obj.changed = True
                     else:
-                        self.mylog.warning(m)
+                        self.mylog.warning(m.format(vv="NOT OVERWRITING", **pdict))
             else:
                 if pdict["value"] is None:
-                    pdict["i"] = "Name: {name!r}".format(**pdict)
-                    m = "Unable to delete {exists} {i} from {objs}".format(**pdict)
+                    m = "Unable to delete {etxt} Name: {name!r} from {props_obj}".format(**pdict)
                     self.mylog.warning(m)
                 else:
-                    pdict["obj"] = prop_obj = taniumpy.MetadataItem()
-                    prop_obj.name = pdict["name"]
-                    prop_obj.value = pdict["value"]
-                    prop_obj.admin_flag = pdict["admin"]
-
-                    pdict["i"] = "Name {obj.name!r} Value: {obj.value!r}".format(**pdict)
-                    m = "Adding new property {i} to {objs}".format(**pdict)
+                    pdict["prop_obj"] = taniumpy.MetadataItem()
+                    pdict["prop_obj"].name = pdict["name"]
+                    pdict["prop_obj"].value = pdict["value"]
+                    pdict["prop_obj"].admin_flag = pdict["admin"]
+                    pdict["pi"] = ptmpl(**pdict)
+                    m = "Adding new property {pi} to {props_obj}".format(**pdict)
                     self.mylog.info(m)
-
-                    props_obj.append(prop_obj)
+                    props_obj.append(pdict["prop_obj"])
                     props_obj.changed = True
 
         if props_obj.changed:
             # update attr on obj
             setattr(obj, props_attr, props_obj)
-
-            # TODO(jeo): create _save method that re-fetches after save
             # save the updates to obj
-            margs = mkargs(kwargs, obj=obj)
-            obj = self.session.save(**margs)
-
+            obj = self.session.save(**mkargs(kwargs, obj=obj))
             # refetch obj after save
-            margs = mkargs(kwargs, obj=obj)
-            obj = self.session.find(**margs)
-
-            self.log_obj_listattr(obj=obj, ltype="Updated properties", **laargs)
+            obj = self.session.find(**mkargs(kwargs, obj=obj))
+            m = "UPDATED {pi} on {o} ".format
+            l = self.mylog.debug
+            [l(m(pi=ptmpl(prop_obj=p), o=obj)) for p in props_obj]
         return obj
 
-    # TODO(jeo): docstring
     def mod_user_props(self, user, **kwargs):
-        """Add properties to a user by name or object."""
-        margs = mkargs(kwargs, user=user)
-        user_obj = self.get_user_obj(**margs)
+        """Modify properties on a user object."""
+        obj = self.find_obj(**mkargs(kwargs, search=user, stype="user"))
+        obj = self.mod_obj_props(**mkargs(kwargs, show_prefix='TConsole.User.Property', obj=obj))
+        return obj
 
-        margs = mkargs(kwargs, show_prefix='TConsole.User.Property', obj=user_obj)
-        user_obj = self.mod_obj_props(**margs)
-        return user_obj
-
-    # TODO(jeo): docstring
     def create_user(self, name, **kwargs):
         """Create a user object with properties compute groups, and RBAC roles.
 
@@ -2151,62 +2122,7 @@ class Handler(object):
         # TODO(jeo): create export_for_create_user()
         return user
 
-    # TODO(jeo): docstring
-    def find_role_match(self, role, attr, **kwargs):
-        """Not yet documented."""
-        aargs = mkargs(kwargs, objtype="content_set_role")
-        all_roles = kwargs.get("all_roles", None) or self.get_all(**aargs)
-
-        found = taniumpy.ContentSetRoleList()
-        found.content_set_role = [x for x in all_roles if getattr(x, attr, None) == role]
-
-        nf = taniumpy.ContentSetRole()
-        setattr(nf, attr, role)
-
-        if len(found) == 0:
-            m = "No match found for {nf!r} in all roles: {ar}"
-            m = m.format(nf=nf, ar=all_roles._info())
-            raise pexc.HandlerError(m)
-        elif len(found) > 1:
-            m = "More than one match found for {nf!r}, matching roles: {ar}"
-            m = m.format(nf=nf, ar=found._info())
-            raise pexc.HandlerError(m)
-        return found[0]
-
-    # TODO(jeo): add type checking to ensure obj is a taniumpy non list
-    # TODO(jeo): and objlist is a list of taniumpy non list
-    # TODO(jeo): docstring
-    def obj_in_objlist(self, obj, objlist, **kwargs):
-        """Check if obj exists in objlist already."""
-        compare_json = argtool.argbool(key="compare_json", kwargs=kwargs, default=True)
-        dup_error = argtool.argbool(key="dup_error", kwargs=kwargs, default=True)
-        def_dup_msg = "Duplicate error! {o} is already in {ol}"
-        dup_msg = argtool.argstr(key="dup_msg", kwargs=kwargs, default=def_dup_msg)
-
-        if compare_json:
-            obj_json = obj.to_json(obj)
-            objlist_json = [x.to_json(x) for x in objlist]
-            exists = obj_json in objlist_json
-        else:
-            obj_simples = obj.simple_dict()
-            objlist_simples = [x.simple_dict() for x in objlist]
-            exists = obj_simples in objlist_simples
-
-        etxt = "does exist in" if exists else "does not exist in"
-        m = "{o} {e} {ol}".format(o=obj._info(), ol=objlist._info(), e=etxt)
-        self.mylog.debug(m)
-
-        if exists:
-            if dup_error:
-                m = dup_msg.format(o=obj._info(), ol=objlist._info())
-                raise pexc.HandlerError(m)
-            else:
-                m = dup_msg.format(o=obj._info(), ol=objlist._info())
-                self.mylog.warning(m)
-        return exists
-
-    # TODO(jeo): docstring
-    def find_roles(self, **kwargs):
+    def build_roles_obj(self, **kwargs):
         """Find ContentSetRoles that match roles.
 
         ContentSetRoles are objects that 7.0 and above uses for storing "RBAC Roles" as shown in the
@@ -2214,216 +2130,182 @@ class Handler(object):
 
         Returns a ContentSetRoleList of all matching roles.
         Will be an empty ContentSetRoleList if no roles supplied
-
-        roles : list of str, int, ContentSetRole, or ContentSetRoleList objects
-          * default: []
-          * action taken for each item type in roles:
-            * str: will find ContentSetRole from API with matching name
-            * int: will find ContentSetRole from API with matching id
-            * ContentSetRole: will just add to the returned ContentSetRoleList
-            * ContentSetRoleList: will add each ContentSetRole member to the returned ContentSetRoleList
         """
         roles = argtool.arglist(key="roles", kwargs=kwargs, default=[])
-        roles_obj = kwargs.get("roles_obj", taniumpy.ContentSetRoleList()) or taniumpy.ContentSetRoleList()
-        all_roles = self.argget(kwargs, "all_roles", "content_set_role")
-
-        stype = (taniumpy.ContentSetRole,)
-        ltype = tuple([taniumpy.ContentSetRoleList] + list(LIST_TYPES))
-
-        vt = list(stype) + list(ltype) + list(STR_TYPES) + list(INT_TYPES)
+        robjs = kwargs.get("roles_obj", taniumpy.ContentSetRoleList()) or taniumpy.ContentSetRoleList()
 
         for role in roles:
-            self.check_type(obj=role, vt=vt, src_key="roles", src=roles)
-            try:
-                role = int(role)
-            except Exception:
-                pass
+            robj = self.find_obj(**mkargs(kwargs, search=role, stype="role"))
+            if not in_list(robj, robjs):
+                robjs.append(robj)
+        return robjs
 
-            if isinstance(role, stype):
-                role_obj = role
-                m = "Supplied role: {r} is a single item, adding to roles list".format(r=role_obj)
-                self.mylog.debug(m)
-                margs = mkargs(kwargs, objlist=roles_obj, obj=role_obj)
-                exists = self.obj_in_objlist(**margs)
-                if not exists:
-                    roles_obj.append(role_obj)
-            elif isinstance(role, ltype):
-                m = "Supplied role: {r} is a list type, add all items to roles list".format(r=role)
-                self.mylog.debug(m)
-                for sub_role in role:
-                    role_obj = sub_role
-                    margs = mkargs(kwargs, objlist=roles_obj, obj=role_obj)
-                    exists = self.obj_in_objlist(**margs)
-                    if not exists:
-                        roles_obj.append(role_obj)
-            elif isinstance(role, STR_TYPES):
-                m = "Supplied role {r!r} is a string, finding match in all roles {ar}"
-                m = m.format(r=role, ar=all_roles)
-                self.mylog.debug(m)
-                role_obj = self.find_role_match(all_roles=all_roles, role=role, attr="name")
-                margs = mkargs(kwargs, objlist=roles_obj, obj=role_obj)
-                exists = self.obj_in_objlist(**margs)
-                if not exists:
-                    roles_obj.append(role_obj)
-            elif isinstance(role, INT_TYPES):
-                m = "Supplied role {r!r} is an integer, finding match in all roles {ar}"
-                m = m.format(r=role, ar=all_roles)
-                self.mylog.debug(m)
-                role_obj = self.find_role_match(all_roles=all_roles, role=role, attr="id")
-                margs = mkargs(kwargs, objlist=roles_obj, obj=role_obj)
-                exists = self.obj_in_objlist(**margs)
-                if not exists:
-                    roles_obj.append(role_obj)
-        return roles_obj
-
-    # TODO(jeo): move to argtool
-    def check_type(self, obj, vt, src_key, src):
-        """Throw exception if obj is not an instance of vt."""
-        if not isinstance(obj, tuple(vt)):
-            j = "\n\t"
-            vtxt = j + j.join(["{}".format(x) for x in vt])
-            m = "Unsupported type supplied in {sk!r}={src}, {obj!r} is type {t}, must be one of type: {vt}"
-            m = m.format(sk=src_key, src=src, obj=obj, t=type(obj), vt=vtxt)
+    def find_obj(self, search, stype, **kwargs):
+        """Find a object based on search from api or from objlist."""
+        def filter_objlist(objlist, attr, search, stype):
+            found = [x for x in objlist if getattr(x, attr) == search]
+            if found:
+                return found[0]
+            m = "Unable to find {st} by name: {s}".format(s=search, st=stype)
             raise pexc.HandlerError(m)
 
-    # TODO(jeo): docstring
-    def get_user_obj(self, user, **kwargs):
-        """Find a user object based on user."""
-        vt = [taniumpy.User] + list(STR_TYPES) + list(INT_TYPES)
-        self.check_type(obj=user, vt=vt, src_key="user", src=user)
+        objlist = kwargs.get("objlist", None)
+        fetch_all = kwargs.get("fetch_all", False)
+        str_attr = kwargs.get("str_attr", "name")
+        int_attr = kwargs.get("int_attr", "id")
+        sclass = getattr(taniumpy, pytan.constants.GET_OBJ_MAP[stype]["single"])
 
-        if isinstance(user, taniumpy.User):
-            m = "Supplied user as {o!r} is a User object, using as is".format(o=user)
-            self.mylog.debug(m)
-            user_obj = user
-        elif isinstance(user, STR_TYPES):
-            m = "Supplied user as {o!r} is a string, finding match from API".format(o=user)
-            self.mylog.debug(m)
-            margs = mkargs(kwargs, objtype="user", name=user)
-            user_obj = self.get(**margs)[0]
-        elif isinstance(user, INT_TYPES):
-            m = "Supplied user as {o!r} is an integer, finding match from API".format(o=user)
-            self.mylog.debug(m)
-            margs = mkargs(kwargs, objtype="user", id=user)
-            user_obj = self.get(**margs)
-        return user_obj
+        if fetch_all and not objlist:
+            objlist = self.get_all(**mkargs(kwargs, objtype=stype))
 
-    def argget(self, kwargs, key, ot):
-        """Check kwargs for key or get all using get_all(objtype=ot).
+        try:
+            search = int(search)
+        except Exception:
+            pass
 
-        If kwargs[key] supplied, make sure it is of multi type for ot.
-        """
-        if key in kwargs and kwargs[key]:
-            ret = kwargs[key]
-            all_obj = getattr(taniumpy, pytan.constants.GET_OBJ_MAP[ot]["all"])
-            if not isinstance(ret, all_obj):
-                m = "Key {k!r} in arguments must be up type {ao}, is type: {ot}, all args: {aa}"
-                m = m.format(k=key, ao=all_obj, aa=kwargs, ot=type(ret))
-                raise pexc.HandlerError(m)
+        if isinstance(search, sclass):
+            obj = search
+        elif isinstance(search, STR_TYPES):
+            if objlist:
+                obj = filter_objlist(objlist, str_attr, search, stype)
+            else:
+                obj = self.get(**mkargs(kwargs, objtype=stype, name=search))[0]
+        elif isinstance(search, INT_TYPES):
+            if objlist:
+                obj = filter_objlist(objlist, int_attr, search, stype)
+            else:
+                obj = self.get(**mkargs(kwargs, objtype=stype, id=search))[0]
         else:
-            margs = mkargs(kwargs, objtype=ot)
-            ret = self.get_all(**margs)
-        return ret
+            ss = "Supplied search={s!r} type {st}".format(o=search, st=type(search))
+            m = "{ss} is an unsupported type (try {s} or string or integer)".format(ss=ss, s=sclass)
+            raise pexc.HandlerError(m)
+        return obj
 
-    # TODO(jeo): docstring
     def mod_roles_user(self, user, **kwargs):
         """Modify (add or remove) content set roles to user."""
         add_roles = argtool.arglist(key="add_roles", kwargs=kwargs, default=[])
         del_roles = argtool.arglist(key="del_roles", kwargs=kwargs, default=[])
         del_all_roles = argtool.argbool(key="del_all_roles", kwargs=kwargs, default=False)
         del_wait = argtool.argint(key="del_wait", kwargs=kwargs, default=self.DEL_WAIT)
-        dup_error = argtool.argbool(key="dup_error", kwargs=kwargs, default=False)
 
-        all_roles = self.argget(kwargs, "all_roles", "content_set_role")
-        all_role_members = self.argget(kwargs, "all_role_members", "content_set_role_membership")
+        uobj = self.find_obj(**mkargs(kwargs, search=user, stype="user"))
+        allroles = self.get_all(**mkargs(kwargs, objtype="role"))
+        droles = self.build_roles_obj(**mkargs(kwargs, roles=del_roles, objlist=allroles))
+        aroles = self.build_roles_obj(**mkargs(kwargs, roles=add_roles, objlist=allroles))
+        hasroles, notroles, maproles = self.user_role_memberships(user=uobj)
 
-        margs = mkargs(kwargs, user=user)
-        user_obj = self.get_user_obj(**margs)
-
-        margs = mkargs(kwargs, roles=add_roles, all_roles=all_roles)
-        add_roles_obj = self.find_roles(**margs)
-
-        margs = mkargs(kwargs, roles=del_roles, all_roles=all_roles)
-        del_roles_obj = self.find_roles(**margs)
-
-        margs = mkargs(kwargs, user=user_obj, all_roles=all_roles, all_role_members=all_role_members)
-        has_roles_obj, not_roles_obj = self.user_role_memberships(**margs)
-
-        m = "Role memberships currently for {u}:\n{r}".format(u=user_obj, r=has_roles_obj._info())
+        m = "Role memberships currently set on {u}:\n{r}".format
+        m = m(u=uobj, r=hasroles._info())
         self.mylog.debug(m)
-        m = "Role non-memberships currently for {u}:\n{r}".format(u=user_obj, r=not_roles_obj._info())
+
+        m = "Role memberships not currently set on {u}:\n{r}".format
+        m = m(u=uobj, r=notroles._info())
         self.mylog.debug(m)
-        m = "Role membership additions for {u}:\n{r}".format(u=user_obj, r=add_roles_obj._info())
+
+        m = "Role membership additions for {u}:\n{r}".format
+        m = m(u=uobj, r=aroles._info())
         self.mylog.debug(m)
-        m = "Role membership deletions for {u}:\n{r}".format(u=user_obj, r=del_roles_obj._info())
+
+        m = "Role membership deletions for {u}:\n{r}".format
+        m = m(u=uobj, r=droles._info())
         self.mylog.debug(m)
-        m = "delete_all_roles={da}, del_wait={dw}".format(da=del_all_roles, dw=del_wait)
-        self.mylog.debug(m)
-        # now need to do all logic of add/delete and checking has/not
 
-        for role_obj in add_roles_obj:
-            dup_msg = (
-                "{u} is already a member of {r}\n"
-                "Will not create membership!\n"
-                "All roles user is a member of: {{ol}}"
-            ).format(u=user_obj, r=role_obj)
-
-            margs = mkargs(kwargs, objlist=has_roles_obj, obj=role_obj, dup_msg=dup_msg, dup_error=dup_error)
-            exists = self.obj_in_objlist(**margs)
-
-            if not exists:
-                self.add_user_role_membership(user_obj=user_obj, role_obj=role_obj)
-        # raise_error = True by default
-        # throw error if user already has role in add_roles
-        # throw error if user does not have role in del_roles
-
-        # figure out if content_set_role_membership can be grouped under content_set_role_memberships
-        # while adding
-
-        # add del_wait?
-
+        if del_all_roles and hasroles:
+            m = (
+                "Due to del_all_roles={dal}, in del_wait={n} seconds all current role memberships for {u} "
+                " will be deleted:\n{r}"
+            ).format
+            m = m(r=hasroles._info(), u=uobj, n=del_wait, dal=del_all_roles)
+            self.mylog.warning(m)
+            # TODO(jeo): flush out del and add NEXT
         ret = {}
-        ret['user'] = user_obj
-        ret['add_roles'] = add_roles_obj
-        ret['del_roles'] = del_roles_obj
-        ret['has_roles'] = has_roles_obj
-        ret['not_roles'] = not_roles_obj
+        ret['uobj'] = uobj
+        ret['aroles'] = aroles
+        ret['droles'] = droles
+        ret['hasroles'] = hasroles
+        ret['notroles'] = notroles
+        ret['maproles'] = maproles
         ret['del_all_roles'] = del_all_roles
         ret['del_wait'] = del_wait
-
         return ret
 
-    # TODO(jeo): docstring
+    '''
+
+        time.sleep(del_wait)
+
+        for role_obj in hasroles:
+            del_obj = taniumpy.ContentSetRoleMembership()
+            del_obj.id = maproles[role_obj.id]
+            self.session.delete(del_obj)
+
+    for role_obj in add_roles_obj:
+        m = "Will not create membership! {u} is already a member of {r}"
+        m = m.format(u=userobj, r=has_roles_obj)
+        margs = mkargs(kwargs, objlist=has_roles_obj, obj=role_obj, dup_msg=m, dup_error=dup_error)
+        exists = self.obj_in_objlist(**margs)
+
+        if not exists:
+            self.add_user_role_membership(userobj=userobj, role_obj=role_obj)
+    raise_error = True by default
+    throw error if user already has role in add_roles
+    throw error if user does not have role in del_roles
+
+    figure out if role_membership can be grouped under role_memberships
+    while adding
+
+    add del_wait?
+    '''
+
     def user_role_memberships(self, user, **kwargs):
-        """Find all roles user is currently a member of."""
-        all_roles = self.argget(kwargs, "all_roles", "content_set_role")
-        all_role_members = self.argget(kwargs, "all_role_members", "content_set_role_membership")
-        user_obj = self.get_user_obj(**mkargs(kwargs, user=user))
+        """Find all roles user is a member of/not a member of."""
+        uobj = self.find_obj(**mkargs(kwargs, search=user, stype="user"))
 
-        has_roles = taniumpy.ContentSetRoleList()
-        not_roles = taniumpy.ContentSetRoleList()
+        all_roles = self.get_all(**mkargs(kwargs, objtype="role"))
+        all_role_members = self.get_all(**mkargs(kwargs, objtype="role_membership"))
 
-        for role in all_roles:
-            has_role = False
-            for role_member in all_role_members:
-                if role_member.content_set_role.id == role.id and role_member.user.id == user_obj.id:
-                    has_role = True
+        hasroles = taniumpy.ContentSetRoleList()
+        notroles = taniumpy.ContentSetRoleList()
+        maproles = {}
 
-            # d = "{} {} {}".format(user_obj, "does have" if has_role else "does not have", role)
+        for rmobj in all_role_members:
+            for robj in all_roles:
+                rmatch = rmobj.content_set_role.id == robj.id
+                umatch = rmobj.user.id == uobj.id
+                match = rmatch and umatch
+                if match:
+                    if robj not in hasroles:
+                        hasroles.append(robj)
+                    if robj.id not in maproles:
+                        maproles[robj.id] = []
+                    maproles[robj.id].append(rmobj.id)
+                else:
+                    if robj not in notroles:
+                        notroles.append(robj)
+        return (hasroles, notroles, maproles)
 
-            if has_role and role.id not in [x.id for x in has_roles]:
-                has_roles.append(role)
-                # self.mylog.debug(d)
+    def get_all_users_roles(self, **kwargs):
+        """Helper method to get build two dictionaries containing user to role mappings."""
+        users = self.get_all("user")
+        roles = self.get_all("content_set_role")
+        members = self.get_all("content_set_role_membership")
 
-            if not has_role and role.id not in [x.id for x in not_roles]:
-                not_roles.append(role)
-                # self.mylog.debug(d)
-        return has_roles, not_roles
+        ret = {}
+        ret["users_roles"] = {x: [] for x in users}
+        ret["roles_users"] = {x: [] for x in roles}
 
-    # TODO(jeo): what does API do when you submit a ContentSetRoleMembership that already exists?
-    # TODO(jeo): what does API do when you submit multiple CSRM's?
-    # TODO(jeo): docstring
-    def add_user_role_membership(self, user_obj, role_obj, **kwargs):
+        for member in members:
+            for user in users:
+                if user.id == member.user.id:
+                    break
+            for role in roles:
+                if role.id == member.content_set_role.id:
+                    break
+
+            ret["users_roles"][user].append(role)
+            ret["roles_users"][role].append(user)
+        return ret
+
+    def del_user_role_membership(self, user_obj, role_obj, **kwargs):
         """Create a ContentSetRoleMembership object that ties a User's ID to a ContentSetRole ID."""
         role_ref = taniumpy.IdReference()
         role_ref.id = role_obj.id
@@ -2438,9 +2320,37 @@ class Handler(object):
 
         h = "Issue an AddObject to add {u} as a member of {c}".format(c=role_obj, u=user_obj)
         margs = mkargs(kwargs, obj=add_obj, pytan_help=h)
+        rm_obj = self._add(**margs)
+
+        m = "Added {c} to {u} using {rm}".format(c=role_obj, u=user_obj, rm=rm_obj)
+        self.mylog.info(m)
+        return rm_obj
+
+    # TODO(jeo): what does API do when you submit a ContentSetRoleMembership that already exists?
+    # apparently it just adds another, which sort of seems to be not the Right Thing. stop that!
+    def add_user_role_membership(self, user, role, **kwargs):
+        """Create a ContentSetRoleMembership object that ties a User's ID to a ContentSetRole ID."""
+        uobj = self.find_obj(**mkargs(kwargs, search=user, stype="user"))
+        robj = self.find_obj(**mkargs(kwargs, search=role, stype="role"))
+
+        hasroles, notroles, maproles = self.user_role_memberships(user=uobj)
+
+        rref = taniumpy.IdReference()
+        rref.id = robj.id
+        rref.name = robj.name
+
+        uref = taniumpy.User()
+        uref.id = uobj.id
+
+        add_obj = taniumpy.ContentSetRoleMembership()
+        add_obj.user = uref
+        add_obj.content_set_role = rref
+
+        h = "Issue an AddObject to add {u} as a member of {r}".format(r=robj, u=uobj)
+        margs = mkargs(kwargs, obj=add_obj, pytan_help=h)
         role_member_obj = self._add(**margs)
 
-        m = "Added {c} to {u} using {rm}".format(c=role_obj, u=user_obj, rm=role_member_obj)
+        m = "Added {u} to {r} using {rm}".format(r=robj, u=uobj, rm=role_member_obj)
         self.mylog.info(m)
         return role_member_obj
 
@@ -2471,6 +2381,8 @@ class Handler(object):
             self.mylog.debug(m.format(user_obj))
         return user_obj
     '''
+
+    """3.0.0 END"""
 
     def create_whitelisted_url(self, url, regex=False, download_seconds=86400, properties=[],
                                **kwargs):
@@ -2856,6 +2768,9 @@ class Handler(object):
         :func:`pytan.handler.Handler._get_multi` : private method used to get multiple items
         :func:`pytan.handler.Handler._get_single` : private method used to get singular items
         """
+        # TODO(jeo): find out why User is fetching all and doing manual search
+        # single object API getobject works for user!
+        # probably should just split all objects into their own methods
         h = "Issue a GetObject to find an object"
         kwargs['pytan_help'] = kwargs.get('pytan_help', h)
 

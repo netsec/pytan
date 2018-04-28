@@ -309,7 +309,7 @@ GET_OBJ_MAP = {
         'delete': True,
         'create_json': True,
     },
-    'content_set_role': {
+    'role': {
         'single': 'ContentSetRole',
         # the object type used to find a single item. only used if 'search' is not empty and 'manual' = False
         'multi': None,
@@ -326,7 +326,7 @@ GET_OBJ_MAP = {
         'create_json': True,
         # pytan can create this object type from a JSON source
     },
-    'content_set_role_membership': {
+    'role_membership': {
         'single': 'ContentSetRoleMembership',
         # the object type used to find a single item. only used if 'search' is not empty and 'manual' = False
         'multi': None,

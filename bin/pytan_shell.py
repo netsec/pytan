@@ -97,6 +97,13 @@ user_obj = handler.mod_user_props(user=user, props=props)
 '''
 
 c7 = '''
+print("creating a new user with properties and group memberships")
+
+props = [
+    {"name": "info1", "value": "simple test"},
+    {"name": "hidden info1", "value": "do not show in console", "show_console": False},
+]
+
 gn = [
     "dumdum",
     "aaaa",
@@ -104,5 +111,38 @@ gn = [
 ]
 u1 = handler.create_user(name="testabc", props=props, del_exists=True, del_wait=0)
 u2 = handler.create_user(name="testabc", props=props, group_names=gn, del_exists=True, del_wait=0)
+'''
+
+c8 = '''
 v = handler.find_roles(roles=["Administrator", 1])
+'''
+
+c9 = '''
+v = handler.mod_roles_user(user=user, add_roles=["test111"])
+'''
+
+c10 = '''
+def f(l, i):
+    for x in l:
+        if x.id == i:
+            return x
+
+
+users = handler.get_all("user")
+roles = handler.get_all("content_set_role")
+members = handler.get_all("content_set_role_membership")
+
+users_roles = {x.name: [] for x in users}
+roles_users = {x.name: [] for x in roles}
+for member in members:
+    user = f(users, member.user.id)
+    role = f(roles, member.content_set_role.id)
+    users_roles[user.name].append(role.name)
+    roles_users[role.name].append(user.name)
+
+users_roles = {x: sorted(y) for x, y in users_roles.items()}
+roles_users = {x: sorted(y) for x, y in roles_users.items()}
+import pprint
+pprint.pprint(users_roles)
+pprint.pprint(roles_users)
 '''
