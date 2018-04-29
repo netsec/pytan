@@ -3,14 +3,15 @@ import datetime
 from base64 import b16encode
 from functools import partial
 from operator import __eq__, __ne__, __lt__, __le__, __gt__, __ge__
-from warnings import warn as _warn
 
 from six import (
     integer_types as _integer_types,
     text_type as _text_type,
     PY3 as _PY3)
 
+from cryptography import x509
 from cryptography.hazmat.primitives.asymmetric import dsa, rsa
+from cryptography.utils import deprecated
 
 from OpenSSL._util import (
     ffi as _ffi,
@@ -22,6 +23,45 @@ from OpenSSL._util import (
     text_to_bytes_and_warn as _text_to_bytes_and_warn,
     make_assert as _make_assert,
 )
+
+__all__ = [
+    'FILETYPE_PEM',
+    'FILETYPE_ASN1',
+    'FILETYPE_TEXT',
+    'TYPE_RSA',
+    'TYPE_DSA',
+    'Error',
+    'PKey',
+    'get_elliptic_curves',
+    'get_elliptic_curve',
+    'X509Name',
+    'X509Extension',
+    'X509Req',
+    'X509',
+    'X509StoreFlags',
+    'X509Store',
+    'X509StoreContextError',
+    'X509StoreContext',
+    'load_certificate',
+    'dump_certificate',
+    'dump_publickey',
+    'dump_privatekey',
+    'Revoked',
+    'CRL',
+    'PKCS7',
+    'PKCS12',
+    'NetscapeSPKI',
+    'load_publickey',
+    'load_privatekey',
+    'dump_certificate_request',
+    'load_certificate_request',
+    'sign',
+    'verify',
+    'dump_crl',
+    'load_crl',
+    'load_pkcs7_data',
+    'load_pkcs12'
+]
 
 FILETYPE_PEM = _lib.SSL_FILETYPE_PEM
 FILETYPE_ASN1 = _lib.SSL_FILETYPE_ASN1
@@ -103,7 +143,7 @@ def _set_asn1_time(boundary, when):
     """
     The the time value of an ASN1 time object.
 
-    @param boundary: An ASN1_GENERALIZEDTIME pointer (or an object safely
+    @param boundary: An ASN1_TIME pointer (or an object safely
         castable to that type) which will have its value set.
     @param when: A string representation of the desired time value.
 
@@ -116,17 +156,9 @@ def _set_asn1_time(boundary, when):
     if not isinstance(when, bytes):
         raise TypeError("when must be a byte string")
 
-    set_result = _lib.ASN1_GENERALIZEDTIME_set_string(
-        _ffi.cast('ASN1_GENERALIZEDTIME*', boundary), when)
+    set_result = _lib.ASN1_TIME_set_string(boundary, when)
     if set_result == 0:
-        dummy = _ffi.gc(_lib.ASN1_STRING_new(), _lib.ASN1_STRING_free)
-        _lib.ASN1_STRING_set(dummy, when, len(when))
-        check_result = _lib.ASN1_GENERALIZEDTIME_check(
-            _ffi.cast('ASN1_GENERALIZEDTIME*', dummy))
-        if not check_result:
-            raise ValueError("Invalid string")
-        else:
-            _untested_error()
+        raise ValueError("Invalid string")
 
 
 def _get_asn1_time(timestamp):
@@ -167,6 +199,19 @@ def _get_asn1_time(timestamp):
             string_result = _ffi.string(string_data)
             _lib.ASN1_GENERALIZEDTIME_free(generalized_timestamp[0])
             return string_result
+
+
+class _X509NameInvalidator(object):
+    def __init__(self):
+        self._names = []
+
+    def add(self, name):
+        self._names.append(name)
+
+    def clear(self):
+        for name in self._names:
+            # Breaks the object, but also prevents UAF!
+            del name._name
 
 
 class PKey(object):
@@ -309,7 +354,7 @@ class PKey(object):
 
         :return: The type of the key.
         """
-        return _lib.Cryptography_EVP_PKEY_id(self._pkey)
+        return _lib.EVP_PKEY_id(self._pkey)
 
     def bits(self):
         """
@@ -320,7 +365,11 @@ class PKey(object):
         return _lib.EVP_PKEY_bits(self._pkey)
 
 
-PKeyType = PKey
+PKeyType = deprecated(
+    PKey, __name__,
+    "PKeyType has been deprecated, use PKey instead",
+    DeprecationWarning
+)
 
 
 class _EllipticCurve(object):
@@ -655,7 +704,11 @@ class X509Name(object):
         return result
 
 
-X509NameType = X509Name
+X509NameType = deprecated(
+    X509Name, __name__,
+    "X509NameType has been deprecated, use X509Name instead",
+    DeprecationWarning
+)
 
 
 class X509Extension(object):
@@ -737,23 +790,9 @@ class X509Extension(object):
     }
 
     def _subjectAltNameString(self):
-        method = _lib.X509V3_EXT_get(self._extension)
-        _openssl_assert(method != _ffi.NULL)
-        ext_data = _lib.X509_EXTENSION_get_data(self._extension)
-        payload = ext_data.data
-        length = ext_data.length
-
-        payloadptr = _ffi.new("unsigned char**")
-        payloadptr[0] = payload
-
-        if method.it != _ffi.NULL:
-            ptr = _lib.ASN1_ITEM_ptr(method.it)
-            data = _lib.ASN1_item_d2i(_ffi.NULL, payloadptr, length, ptr)
-            names = _ffi.cast("GENERAL_NAMES*", data)
-        else:
-            names = _ffi.cast(
-                "GENERAL_NAMES*",
-                method.d2i(_ffi.NULL, payloadptr, length))
+        names = _ffi.cast(
+            "GENERAL_NAMES*", _lib.X509V3_EXT_d2i(self._extension)
+        )
 
         names = _ffi.gc(names, _lib.GENERAL_NAMES_free)
         parts = []
@@ -823,7 +862,11 @@ class X509Extension(object):
         return _ffi.buffer(char_result, result_length)[:]
 
 
-X509ExtensionType = X509Extension
+X509ExtensionType = deprecated(
+    X509Extension, __name__,
+    "X509ExtensionType has been deprecated, use X509Extension instead",
+    DeprecationWarning
+)
 
 
 class X509Req(object):
@@ -836,6 +879,39 @@ class X509Req(object):
         self._req = _ffi.gc(req, _lib.X509_REQ_free)
         # Default to version 0.
         self.set_version(0)
+
+    def to_cryptography(self):
+        """
+        Export as a ``cryptography`` certificate signing request.
+
+        :rtype: ``cryptography.x509.CertificateSigningRequest``
+
+        .. versionadded:: 17.1.0
+        """
+        from cryptography.hazmat.backends.openssl.x509 import (
+            _CertificateSigningRequest
+        )
+        backend = _get_backend()
+        return _CertificateSigningRequest(backend, self._req)
+
+    @classmethod
+    def from_cryptography(cls, crypto_req):
+        """
+        Construct based on a ``cryptography`` *crypto_req*.
+
+        :param crypto_req: A ``cryptography`` X.509 certificate signing request
+        :type crypto_req: ``cryptography.x509.CertificateSigningRequest``
+
+        :rtype: PKey
+
+        .. versionadded:: 17.1.0
+        """
+        if not isinstance(crypto_req, x509.CertificateSigningRequest):
+            raise TypeError("Must be a certificate signing request")
+
+        req = cls()
+        req._req = crypto_req._x509_req
+        return req
 
     def set_pubkey(self, pkey):
         """
@@ -992,7 +1068,11 @@ class X509Req(object):
         return result
 
 
-X509ReqType = X509Req
+X509ReqType = deprecated(
+    X509Req, __name__,
+    "X509ReqType has been deprecated, use X509Req instead",
+    DeprecationWarning
+)
 
 
 class X509(object):
@@ -1003,6 +1083,48 @@ class X509(object):
         x509 = _lib.X509_new()
         _openssl_assert(x509 != _ffi.NULL)
         self._x509 = _ffi.gc(x509, _lib.X509_free)
+
+        self._issuer_invalidator = _X509NameInvalidator()
+        self._subject_invalidator = _X509NameInvalidator()
+
+    @classmethod
+    def _from_raw_x509_ptr(cls, x509):
+        cert = cls.__new__(cls)
+        cert._x509 = _ffi.gc(x509, _lib.X509_free)
+        cert._issuer_invalidator = _X509NameInvalidator()
+        cert._subject_invalidator = _X509NameInvalidator()
+        return cert
+
+    def to_cryptography(self):
+        """
+        Export as a ``cryptography`` certificate.
+
+        :rtype: ``cryptography.x509.Certificate``
+
+        .. versionadded:: 17.1.0
+        """
+        from cryptography.hazmat.backends.openssl.x509 import _Certificate
+        backend = _get_backend()
+        return _Certificate(backend, self._x509)
+
+    @classmethod
+    def from_cryptography(cls, crypto_cert):
+        """
+        Construct based on a ``cryptography`` *crypto_cert*.
+
+        :param crypto_key: A ``cryptography`` X.509 certificate.
+        :type crypto_key: ``cryptography.x509.Certificate``
+
+        :rtype: PKey
+
+        .. versionadded:: 17.1.0
+        """
+        if not isinstance(crypto_cert, x509.Certificate):
+            raise TypeError("Must be a certificate")
+
+        cert = cls()
+        cert._x509 = crypto_cert._x509
+        return cert
 
     def set_version(self, version):
         """
@@ -1243,11 +1365,9 @@ class X509(object):
         """
         Get the timestamp at which the certificate starts being valid.
 
-        The timestamp is formatted as an ASN.1 GENERALIZEDTIME::
+        The timestamp is formatted as an ASN.1 TIME::
 
             YYYYMMDDhhmmssZ
-            YYYYMMDDhhmmss+hhmm
-            YYYYMMDDhhmmss-hhmm
 
         :return: A timestamp string, or ``None`` if there is none.
         :rtype: bytes or NoneType
@@ -1261,11 +1381,9 @@ class X509(object):
         """
         Set the timestamp at which the certificate starts being valid.
 
-        The timestamp is formatted as an ASN.1 GENERALIZEDTIME::
+        The timestamp is formatted as an ASN.1 TIME::
 
             YYYYMMDDhhmmssZ
-            YYYYMMDDhhmmss+hhmm
-            YYYYMMDDhhmmss-hhmm
 
         :param bytes when: A timestamp string.
         :return: ``None``
@@ -1276,11 +1394,9 @@ class X509(object):
         """
         Get the timestamp at which the certificate stops being valid.
 
-        The timestamp is formatted as an ASN.1 GENERALIZEDTIME::
+        The timestamp is formatted as an ASN.1 TIME::
 
             YYYYMMDDhhmmssZ
-            YYYYMMDDhhmmss+hhmm
-            YYYYMMDDhhmmss-hhmm
 
         :return: A timestamp string, or ``None`` if there is none.
         :rtype: bytes or NoneType
@@ -1291,11 +1407,9 @@ class X509(object):
         """
         Set the timestamp at which the certificate stops being valid.
 
-        The timestamp is formatted as an ASN.1 GENERALIZEDTIME::
+        The timestamp is formatted as an ASN.1 TIME::
 
             YYYYMMDDhhmmssZ
-            YYYYMMDDhhmmss+hhmm
-            YYYYMMDDhhmmss-hhmm
 
         :param bytes when: A timestamp string.
         :return: ``None``
@@ -1331,7 +1445,9 @@ class X509(object):
         :return: The issuer of this certificate.
         :rtype: :class:`X509Name`
         """
-        return self._get_name(_lib.X509_get_issuer_name)
+        name = self._get_name(_lib.X509_get_issuer_name)
+        self._issuer_invalidator.add(name)
+        return name
 
     def set_issuer(self, issuer):
         """
@@ -1342,7 +1458,8 @@ class X509(object):
 
         :return: ``None``
         """
-        return self._set_name(_lib.X509_set_issuer_name, issuer)
+        self._set_name(_lib.X509_set_issuer_name, issuer)
+        self._issuer_invalidator.clear()
 
     def get_subject(self):
         """
@@ -1356,7 +1473,9 @@ class X509(object):
         :return: The subject of this certificate.
         :rtype: :class:`X509Name`
         """
-        return self._get_name(_lib.X509_get_subject_name)
+        name = self._get_name(_lib.X509_get_subject_name)
+        self._subject_invalidator.add(name)
+        return name
 
     def set_subject(self, subject):
         """
@@ -1367,7 +1486,8 @@ class X509(object):
 
         :return: ``None``
         """
-        return self._set_name(_lib.X509_set_subject_name, subject)
+        self._set_name(_lib.X509_set_subject_name, subject)
+        self._subject_invalidator.clear()
 
     def get_extension_count(self):
         """
@@ -1420,7 +1540,11 @@ class X509(object):
         return ext
 
 
-X509Type = X509
+X509Type = deprecated(
+    X509, __name__,
+    "X509Type has been deprecated, use X509 instead",
+    DeprecationWarning
+)
 
 
 class X509StoreFlags(object):
@@ -1548,7 +1672,11 @@ class X509Store(object):
         _openssl_assert(_lib.X509_STORE_set1_param(self._store, param) != 0)
 
 
-X509StoreType = X509Store
+X509StoreType = deprecated(
+    X509Store, __name__,
+    "X509StoreType has been deprecated, use X509Store instead",
+    DeprecationWarning
+)
 
 
 class X509StoreContextError(Exception):
@@ -1596,6 +1724,9 @@ class X509StoreContext(object):
     def _init(self):
         """
         Set up the store context for a subsequent verification operation.
+
+        Calling this method more than once without first calling
+        :meth:`_cleanup` will leak memory.
         """
         ret = _lib.X509_STORE_CTX_init(
             self._store_ctx, self._store._store, self._cert._x509, _ffi.NULL
@@ -1629,8 +1760,7 @@ class X509StoreContext(object):
         # expect this call to never return :class:`None`.
         _x509 = _lib.X509_STORE_CTX_get_current_cert(self._store_ctx)
         _cert = _lib.X509_dup(_x509)
-        pycert = X509.__new__(X509)
-        pycert._x509 = _ffi.gc(_cert, _lib.X509_free)
+        pycert = X509._from_raw_x509_ptr(_cert)
         return X509StoreContextError(errors, pycert)
 
     def set_store(self, store):
@@ -1656,6 +1786,10 @@ class X509StoreContext(object):
         """
         # Always re-initialize the store context in case
         # :meth:`verify_certificate` is called multiple times.
+        #
+        # :meth:`_init` is called in :meth:`__init__` so _cleanup is called
+        # before _init to ensure memory is not leaked.
+        self._cleanup()
         self._init()
         ret = _lib.X509_verify_cert(self._store_ctx)
         self._cleanup()
@@ -1689,9 +1823,7 @@ def load_certificate(type, buffer):
     if x509 == _ffi.NULL:
         _raise_current_error()
 
-    cert = X509.__new__(X509)
-    cert._x509 = _ffi.gc(x509, _lib.X509_free)
-    return cert
+    return X509._from_raw_x509_ptr(x509)
 
 
 def dump_certificate(type, cert):
@@ -1763,6 +1895,9 @@ def dump_privatekey(type, pkey, cipher=None, passphrase=None):
     """
     bio = _new_mem_buf()
 
+    if not isinstance(pkey, PKey):
+        raise TypeError("pkey must be a PKey")
+
     if cipher is not None:
         if passphrase is None:
             raise TypeError(
@@ -1783,6 +1918,9 @@ def dump_privatekey(type, pkey, cipher=None, passphrase=None):
     elif type == FILETYPE_ASN1:
         result_code = _lib.i2d_PrivateKey_bio(bio, pkey._pkey)
     elif type == FILETYPE_TEXT:
+        if _lib.EVP_PKEY_id(pkey._pkey) != _lib.EVP_PKEY_RSA:
+            raise TypeError("Only RSA keys are supported for FILETYPE_TEXT")
+
         rsa = _ffi.gc(
             _lib.EVP_PKEY_get1_RSA(pkey._pkey),
             _lib.RSA_free
@@ -1951,7 +2089,7 @@ class Revoked(object):
         Set the revocation timestamp.
 
         :param bytes when: The timestamp of the revocation,
-            as ASN.1 GENERALIZEDTIME.
+            as ASN.1 TIME.
         :return: ``None``
         """
         dt = _lib.X509_REVOKED_get0_revocationDate(self._revoked)
@@ -1961,7 +2099,7 @@ class Revoked(object):
         """
         Get the revocation timestamp.
 
-        :return: The timestamp of the revocation, as ASN.1 GENERALIZEDTIME.
+        :return: The timestamp of the revocation, as ASN.1 TIME.
         :rtype: bytes
         """
         dt = _lib.X509_REVOKED_get0_revocationDate(self._revoked)
@@ -1976,6 +2114,39 @@ class CRL(object):
     def __init__(self):
         crl = _lib.X509_CRL_new()
         self._crl = _ffi.gc(crl, _lib.X509_CRL_free)
+
+    def to_cryptography(self):
+        """
+        Export as a ``cryptography`` CRL.
+
+        :rtype: ``cryptography.x509.CertificateRevocationList``
+
+        .. versionadded:: 17.1.0
+        """
+        from cryptography.hazmat.backends.openssl.x509 import (
+            _CertificateRevocationList
+        )
+        backend = _get_backend()
+        return _CertificateRevocationList(backend, self._crl)
+
+    @classmethod
+    def from_cryptography(cls, crypto_crl):
+        """
+        Construct based on a ``cryptography`` *crypto_crl*.
+
+        :param crypto_crl: A ``cryptography`` certificate revocation list
+        :type crypto_crl: ``cryptography.x509.CertificateRevocationList``
+
+        :rtype: CRL
+
+        .. versionadded:: 17.1.0
+        """
+        if not isinstance(crypto_crl, x509.CertificateRevocationList):
+            raise TypeError("Must be a certificate revocation list")
+
+        crl = cls()
+        crl._crl = crypto_crl._x509_crl
+        return crl
 
     def get_revoked(self):
         """
@@ -2048,11 +2219,9 @@ class CRL(object):
         """
         Set when the CRL was last updated.
 
-        The timestamp is formatted as an ASN.1 GENERALIZEDTIME::
+        The timestamp is formatted as an ASN.1 TIME::
 
             YYYYMMDDhhmmssZ
-            YYYYMMDDhhmmss+hhmm
-            YYYYMMDDhhmmss-hhmm
 
         .. versionadded:: 16.1.0
 
@@ -2065,11 +2234,9 @@ class CRL(object):
         """
         Set when the CRL will next be udpated.
 
-        The timestamp is formatted as an ASN.1 GENERALIZEDTIME::
+        The timestamp is formatted as an ASN.1 TIME::
 
             YYYYMMDDhhmmssZ
-            YYYYMMDDhhmmss+hhmm
-            YYYYMMDDhhmmss-hhmm
 
         .. versionadded:: 16.1.0
 
@@ -2126,13 +2293,7 @@ class CRL(object):
             raise TypeError("type must be an integer")
 
         if digest is _UNSPECIFIED:
-            _warn(
-                "The default message digest (md5) is deprecated.  "
-                "Pass the name of a message digest explicitly.",
-                category=DeprecationWarning,
-                stacklevel=2,
-            )
-            digest = b"md5"
+            raise TypeError("digest must be provided")
 
         digest_obj = _lib.EVP_get_digestbyname(digest)
         if digest_obj == _ffi.NULL:
@@ -2163,7 +2324,11 @@ class CRL(object):
         return dump_crl(type, self)
 
 
-CRLType = CRL
+CRLType = deprecated(
+    CRL, __name__,
+    "CRLType has been deprecated, use CRL instead",
+    DeprecationWarning
+)
 
 
 class PKCS7(object):
@@ -2210,7 +2375,11 @@ class PKCS7(object):
         return _ffi.string(string_type)
 
 
-PKCS7Type = PKCS7
+PKCS7Type = deprecated(
+    PKCS7, __name__,
+    "PKCS7Type has been deprecated, use PKCS7 instead",
+    DeprecationWarning
+)
 
 
 class PKCS12(object):
@@ -2387,7 +2556,11 @@ class PKCS12(object):
         return _bio_to_string(bio)
 
 
-PKCS12Type = PKCS12
+PKCS12Type = deprecated(
+    PKCS12, __name__,
+    "PKCS12Type has been deprecated, use PKCS12 instead",
+    DeprecationWarning
+)
 
 
 class NetscapeSPKI(object):
@@ -2480,7 +2653,11 @@ class NetscapeSPKI(object):
         _openssl_assert(set_result == 1)
 
 
-NetscapeSPKIType = NetscapeSPKI
+NetscapeSPKIType = deprecated(
+    NetscapeSPKI, __name__,
+    "NetscapeSPKIType has been deprecated, use NetscapeSPKI instead",
+    DeprecationWarning
+)
 
 
 class _PassphraseHelper(object):
@@ -2697,9 +2874,10 @@ def sign(pkey, data, digest):
     _lib.EVP_SignInit(md_ctx, digest_obj)
     _lib.EVP_SignUpdate(md_ctx, data, len(data))
 
-    pkey_length = (PKey.bits(pkey) + 7) // 8
-    signature_buffer = _ffi.new("unsigned char[]", pkey_length)
-    signature_length = _ffi.new("unsigned int*")
+    length = _lib.EVP_PKEY_size(pkey._pkey)
+    _openssl_assert(length > 0)
+    signature_buffer = _ffi.new("unsigned char[]", length)
+    signature_length = _ffi.new("unsigned int *")
     final_result = _lib.EVP_SignFinal(
         md_ctx, signature_buffer, signature_length, pkey._pkey)
     _openssl_assert(final_result == 1)
@@ -2793,7 +2971,7 @@ def load_crl(type, buffer):
         _raise_current_error()
 
     result = CRL.__new__(CRL)
-    result._crl = crl
+    result._crl = _ffi.gc(crl, _lib.X509_CRL_free)
     return result
 
 
@@ -2880,8 +3058,7 @@ def load_pkcs12(buffer, passphrase=None):
         pycert = None
         friendlyname = None
     else:
-        pycert = X509.__new__(X509)
-        pycert._x509 = _ffi.gc(cert[0], _lib.X509_free)
+        pycert = X509._from_raw_x509_ptr(cert[0])
 
         friendlyname_length = _ffi.new("int*")
         friendlyname_buffer = _lib.X509_alias_get0(
@@ -2895,8 +3072,8 @@ def load_pkcs12(buffer, passphrase=None):
 
     pycacerts = []
     for i in range(_lib.sk_X509_num(cacerts)):
-        pycacert = X509.__new__(X509)
-        pycacert._x509 = _lib.sk_X509_value(cacerts, i)
+        x509 = _lib.sk_X509_value(cacerts, i)
+        pycacert = X509._from_raw_x509_ptr(x509)
         pycacerts.append(pycacert)
     if not pycacerts:
         pycacerts = None

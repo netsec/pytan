@@ -5,9 +5,9 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
-# import platform
+import platform
 import sys
-# import warnings
+import warnings
 
 THIS_FILE = __file__
 """This file, ala ``/path/to/pkg/libs_external/__init__.py``"""
@@ -22,11 +22,11 @@ ANY_DIR = "any"
 ANY_PATH = os.path.join(THIS_PATH, ANY_DIR)
 """The non-platform specific library path, ala ``/path/to/pkg/libs_external/any``"""
 
-'''# PLATFORM SPECIFIC EXTERNAL LIBRARIES
+# PLATFORM SPECIFIC EXTERNAL LIBRARIES
 PLATFORM_MAP = {
     "darwin": "osx",
     "windows": "win",
-    "linux": "linux",
+    "linux": "nix",
 }
 """Mapping of platform.system().lower() to platform specific library directories."""
 
@@ -43,11 +43,10 @@ if not PLATFORM_DIR:
     w = "No platform specific binary packages provided in this tool for platform {}"
     w = w.format(THIS_PLATFORM)
     warnings.warn(w)
-'''
 
 PATHS = [
+    PLATFORM_PATH,
     ANY_PATH,
-    # PLATFORM_PATH,
 ]
 
 
