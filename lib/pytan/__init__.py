@@ -4,7 +4,7 @@ import os
 import sys
 
 __title__ = 'PyTan'
-__version__ = '2.2.3'
+__version__ = '3.0.0'
 """
 Version of PyTan
 """
