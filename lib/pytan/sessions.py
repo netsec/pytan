@@ -40,6 +40,16 @@ except Exception:
     raise
 
 
+def mkargs(orig_kwargs, **new_kwargs):
+    """Make a new kwargs dict with orig_kwargs and **new_kwargs."""
+    margs = {}
+    margs.update(orig_kwargs)
+    margs.update(new_kwargs)
+    if orig_kwargs.get('pytan_help', ""):
+        margs['pytan_help'] = orig_kwargs.get('pytan_help', "")
+    return margs
+
+
 class Session(object):
     """This session object uses the :mod:`requests` package instead of the built in httplib library.
 
@@ -64,22 +74,22 @@ class Session(object):
     """
 
     XMLNS = {
-        'SOAP-ENV': 'xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"',
+        'env': 'xmlns:env="http://schemas.xmlsoap.org/soap/envelope/"',
         'xsd': 'xmlns:xsd="http://www.w3.org/2001/XMLSchema"',
         'xsi': 'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"',
         'typens': 'xmlns:typens="urn:TaniumSOAP"',
     }
     """The namespace mappings for use in XML Request bodies"""
 
-    REQUEST_BODY_BASE = ("""<SOAP-ENV:Envelope {SOAP-ENV} {xsd} {xsi}>
-<SOAP-ENV:Body>
+    REQUEST_BODY_BASE = ("""<env:Envelope {env} {xsd} {xsi}>
+<env:Body>
   <typens:tanium_soap_request {typens}>
-    <command>$command</command>
+    <command>$cmd</command>
     <object_list>$object_list</object_list>
     $options
   </typens:tanium_soap_request>
-</SOAP-ENV:Body>
-</SOAP-ENV:Envelope>""").format(**XMLNS)
+</env:Body>
+</env:Envelope>""").format(**XMLNS)
     """The XML template used for all SOAP Requests in string form"""
 
     AUTH_RES = 'auth'
@@ -1530,15 +1540,15 @@ class Session(object):
             return "Unable to find diagnostic: {}, exception: {}".format(search_path, e)
         return diags
 
-    def _build_body(self, command, object_list, log_options=False, **kwargs):
+    def _build_body(self, cmd, object_list, obj, log_options=False, **kwargs):
         """Utility method for building an XML Request Body.
 
         Parameters
         ----------
-        command : str
-            * text to use in command node when building template
-        object_list : str
-            * XML string to use in object list node when building template
+        cmd : str
+            * text to use in cmd node when building template
+        obj : str
+            * taniumpy object to turn into XML
         kwargs : dict, optional
             * any number of attributes that can be set via :class:`taniumpy.object_types.options.Options`
               that control the servers response.
@@ -1552,6 +1562,11 @@ class Session(object):
         body : str
             * The XML request body created from the string.template self.REQUEST_BODY_TEMPLATE
         """
+        pytan_help = "Use <command>{c}</command> with object: <{s}>"
+        pytan_help = pytan_help.format(c=cmd, s=obj._soap_tag)
+        kwargs['pytan_help'] = kwargs.get('pytan_help', pytan_help)
+        kwargs['suppress_object_list'] = kwargs.get('suppress_object_list', 1)
+
         options_obj = taniumpy.Options()
 
         for k, v in kwargs.iteritems():
@@ -1567,7 +1582,7 @@ class Session(object):
 
         options = options_obj.toSOAPBody(minimal=True)
         body_template = string.Template(self.REQUEST_BODY_BASE)
-        body = body_template.substitute(command=command, object_list=object_list, options=options)
+        body = body_template.substitute(cmd=cmd, object_list=object_list, options=options)
         return body
 
     def _create_run_plugin_object_body(self, obj, **kwargs):
@@ -1586,12 +1601,9 @@ class Session(object):
         obj_body : str
             * The XML request body created from :func:`pytan.sessions.Session._build_body`
         """
-        clean_keys = ['command', 'object_list']
-        clean_kwargs = pytan.utils.clean_kwargs(kwargs=kwargs, keys=clean_keys)
-
         object_list = obj.toSOAPBody(minimal=True)
         cmd = 'RunPlugin'
-        obj_body = self._build_body(command=cmd, object_list=object_list, **clean_kwargs)
+        obj_body = self._build_body(**mkargs(kwargs, cmd=cmd, object_list=object_list, obj=obj))
         return obj_body
 
     def _create_add_object_body(self, obj, **kwargs):
@@ -1610,12 +1622,9 @@ class Session(object):
         obj_body : str
             * The XML request body created from :func:`pytan.sessions.Session._build_body`
         """
-        clean_keys = ['command', 'object_list']
-        clean_kwargs = pytan.utils.clean_kwargs(kwargs=kwargs, keys=clean_keys)
-
         object_list = obj.toSOAPBody(minimal=True)
         cmd = 'AddObject'
-        obj_body = self._build_body(command=cmd, object_list=object_list, **clean_kwargs)
+        obj_body = self._build_body(**mkargs(kwargs, cmd=cmd, object_list=object_list, obj=obj))
         return obj_body
 
     def _create_delete_object_body(self, obj, **kwargs):
@@ -1634,12 +1643,9 @@ class Session(object):
         obj_body : str
             * The XML request body created from :func:`pytan.sessions.Session._build_body`
         """
-        clean_keys = ['command', 'object_list']
-        clean_kwargs = pytan.utils.clean_kwargs(kwargs=kwargs, keys=clean_keys)
-
         object_list = obj.toSOAPBody(minimal=True)
         cmd = 'DeleteObject'
-        obj_body = self._build_body(command=cmd, object_list=object_list, **clean_kwargs)
+        obj_body = self._build_body(**mkargs(kwargs, cmd=cmd, object_list=object_list, obj=obj))
         return obj_body
 
     def _create_get_result_info_body(self, obj, **kwargs):
@@ -1658,12 +1664,9 @@ class Session(object):
         obj_body : str
             * The XML request body created from :func:`pytan.sessions.Session._build_body`
         """
-        clean_keys = ['command', 'object_list']
-        clean_kwargs = pytan.utils.clean_kwargs(kwargs=kwargs, keys=clean_keys)
-
         object_list = obj.toSOAPBody(minimal=True)
         cmd = 'GetResultInfo'
-        obj_body = self._build_body(command=cmd, object_list=object_list, **clean_kwargs)
+        obj_body = self._build_body(**mkargs(kwargs, cmd=cmd, object_list=object_list, obj=obj))
         return obj_body
 
     def _create_get_result_data_body(self, obj, **kwargs):
@@ -1682,12 +1685,9 @@ class Session(object):
         obj_body : str
             * The XML request body created from :func:`pytan.sessions.Session._build_body`
         """
-        clean_keys = ['command', 'object_list']
-        clean_kwargs = pytan.utils.clean_kwargs(kwargs=kwargs, keys=clean_keys)
-
         object_list = obj.toSOAPBody(minimal=True)
         cmd = 'GetResultData'
-        obj_body = self._build_body(command=cmd, object_list=object_list, **clean_kwargs)
+        obj_body = self._build_body(**mkargs(kwargs, cmd=cmd, object_list=object_list, obj=obj))
         return obj_body
 
     def _create_get_object_body(self, obj, **kwargs):
@@ -1706,16 +1706,13 @@ class Session(object):
         obj_body : str
             * The XML request body created from :func:`pytan.sessions.Session._build_body`
         """
-        clean_keys = ['command', 'object_list']
-        clean_kwargs = pytan.utils.clean_kwargs(kwargs=kwargs, keys=clean_keys)
-
         if isinstance(obj, taniumpy.BaseType):
             object_list = obj.toSOAPBody(minimal=True)
         else:
             object_list = '<{}/>'.format(obj._soap_tag)
 
         cmd = 'GetObject'
-        obj_body = self._build_body(command=cmd, object_list=object_list, **clean_kwargs)
+        obj_body = self._build_body(**mkargs(kwargs, cmd=cmd, object_list=object_list, obj=obj))
         return obj_body
 
     def _create_update_object_body(self, obj, **kwargs):
@@ -1734,12 +1731,9 @@ class Session(object):
         obj_body : str
             * The XML request body created from :func:`pytan.sessions.Session._build_body`
         """
-        clean_keys = ['command', 'object_list']
-        clean_kwargs = pytan.utils.clean_kwargs(kwargs=kwargs, keys=clean_keys)
-
         object_list = obj.toSOAPBody(minimal=True)
         cmd = 'UpdateObject'
-        obj_body = self._build_body(command=cmd, object_list=object_list, **clean_kwargs)
+        obj_body = self._build_body(**mkargs(kwargs, cmd=cmd, object_list=object_list, obj=obj))
         return obj_body
 
     def _check_auth(self):
