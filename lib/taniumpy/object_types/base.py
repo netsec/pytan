@@ -1,19 +1,56 @@
-# Copyright (c) 2015 Tanium Inc
-#
-
+"""BaseType used by all taniumpy objects."""
 import csv
+import functools
 import io
 import json
+import operator
+import pprint
 import re
+import sys
+
 try:
     import xml.etree.cElementTree as ET
 except:
     import xml.etree.ElementTree as ET
 
+IS_PY2 = sys.version_info[0] == 2
+"""Coarse Python version differential."""
+
+STR = unicode if IS_PY2 else str  # noqa
+"""String type to use, depending on Python version."""
+
+STR_TYPES = (STR, basestring) if IS_PY2 else (STR,)  # noqa
+"""Tuple of valid string types, depending on Python version."""
+
+INT_TYPES = (int, long) if IS_PY2 else (int,)  # noqa
+"""Tuple of valid int types, depending on Python version."""
+
+LIST_TYPES = (list, tuple)
+"""Tuple of valid list types."""
+
+
+def rgetattr(obj, attr, *args):
+    """Method that supplies dotted notation to getattr."""
+    def _getattr(obj, attr):
+        return getattr(obj, attr, *args)
+    return functools.reduce(_getattr, [obj] + attr.split('.'))
+
+
+def mkargs(orig_kwargs, **new_kwargs):
+    """Make a new kwargs dict with orig_kwargs and **new_kwargs."""
+    margs = {}
+    margs.update(orig_kwargs)
+    margs.update(new_kwargs)
+    if orig_kwargs.get('pytan_help', ""):
+        margs['pytan_help'] = orig_kwargs.get('pytan_help', "")
+    return margs
+
 
 class IncorrectTypeException(Exception):
-    """Raised when a property is not of the expected type"""
+    """Raised when a property is not of the expected type."""
+
     def __init__(self, property, expected, actual):
+        """Constructor."""
         self.property = property
         self.expected = expected
         self.actual = actual
@@ -22,127 +59,325 @@ class IncorrectTypeException(Exception):
 
 
 class BaseType(object):
+    """BaseType used by all taniumpy objects."""
 
     _soap_tag = None
+    STR_ATTRS = None
+    SUMMARY = None
 
-    def __init__(self, simple_properties, complex_properties,
-                 list_properties):
+    def __init__(self, simple_properties, complex_properties, list_properties):
+        """Constructor."""
         self._initialized = False
         self._simple_properties = simple_properties
         self._complex_properties = complex_properties
         self._list_properties = list_properties
         self._initialized = True
+        str_attrs = getattr(self, "STR_ATTRS", []) or []
+        def_attrs = [x for x in ["name", "id"] if x in self._sprops]
+        self.STR_ATTRS = def_attrs + str_attrs
 
+    """LIST METHOD."""
     def __getitem__(self, n):
-        """Allow automatic indexing into lists.
+        """Allow automatic indexing into lists."""
+        return self._list[n]
 
-        Only supported on types that have a single property
-        that is in list_properties
+    """LIST METHOD."""
+    def __iadd__(self, value):
+        """Support += operand."""
+        other = self._item_types(value)
+        self._list += other
+        return self
 
-        """
-        if len(self._list_properties) == 1:
-            return getattr(self, self._list_properties.items()[0][0])[n]
-        else:
-            raise Exception(
-                'Not simply a list type, __getitem__ not supported'
-            )
+    """LIST METHOD."""
+    def __add__(self, value):
+        """Support + operand."""
+        other = self._item_types(value)
+        ret = self._new
+        ret._list = self._list + other
+        return ret
 
     def __len__(self):
-        """Allow len() for lists.
-
-        Only supported on types that have a single property
-        that is in list_properties
-
-        """
-        if len(self._list_properties) == 1:
-            return len(getattr(self, self._list_properties.items()[0][0]))
+        """Allow len() for lists."""
+        if self.is_list:
+            ret = len(getattr(self, self.list_attrs["attr"]))
         else:
-            # TODO(jeo): throw error if no simple or complex props
-            cnt_keys = list(self._simple_properties.keys()) + list(self._complex_properties.keys())
-            cnt_dict = {k: getattr(self, k, None) for k in cnt_keys}
-            cnt_vals = [v for k, v in cnt_dict.items() if v is not None]
-            return len(cnt_vals)
+            ret = len([v for k, v in self._avals.items() if v is not None])
+        return ret
 
     def __str__(self):
         """String method."""
         vals = []
-        m = "<{}>".format(self.__class__.__name__)
-        vals.append(m)
-        if self._is_list():
-            m = "# items: {}".format(len(self))
+        if getattr(self, "SUMMARY", None):
+            m = "Summary: {}".format(self.SUMMARY)
+            vals.append(m)
+        if self.is_list:
+            m = "length: {}".format(len(self))
             vals.append(m)
         else:
-            hasname = hasattr(self, "name")
-            hasdisplayname = hasattr(self, "display_name")
-            hasid = hasattr(self, "id")
-            if hasname:
-                m = "name: {!r}".format(self.name)
-                vals.append(m)
-            if hasdisplayname and self.display_name:
-                m = "display_name: {!r}".format(self.display_name)
-                vals.append(m)
-            if hasid:
-                m = "id: {!r}".format(self.id)
-                vals.append(m)
-            if not any([hasname, hasid]):
-                m = "set attrs: {}".format(len(self))
-                vals.append(m)
-        ret = ", ".join(vals)
+            # invattr = "Invalid attr: {!r}".format
+            # m = "{!r}".format({k: v for k, v in self._avals.items() if k in self.STR_ATTRS})
+            m = pprint.pformat({k: v for k, v in self._avals.items() if k in self.STR_ATTRS}, width=200)
+            vals.append(m)
+            # setcnt = len([v for k, v in self._avals.items() if v is not None])
+            # unsetcnt = len([v for k, v in self._avals.items() if v is None])
+            # m = "attrs: {s} set, {u} unset".format(s=setcnt, u=unsetcnt)
+            # vals.append(m)
+        ret = "{} {}".format(self._sname, ", ".join(vals))
         return ret
 
-    def _info(self):
-        """Construct a string that explains self."""
-        obj_str = "{}".format(self)
-        if self._is_list():
-            if self:
-                items = ["{}".format(x) for x in self]
-                j = "\n\t"
-                obj_str += ", items:{}".format(j + j.join(items))
-        return obj_str
+    def __eq__(self, value):
+        """Allow for self == / != value using serialized json of self and value."""
+        if not isinstance(value, self.__class__):
+            m = "Unable to compare '{s}' type {st} against value '{v}' type {vt}"
+            m = m.format(s=self, st=type(self), v=value, vt=type(value))
+            raise Exception(m)
 
-    def simple_dict(self):
-        """Return a dictionary with all of the key/value pairs of obj that are simple properties."""
-        return {k: getattr(self, k) for k in self._simple_properties.keys()}
-
-    def complex_dict(self):
-        """Return a dictionary with all of the key/value pairs of obj that are complex properties."""
-        return {k: getattr(self, k) for k in self._complex_properties.keys()}
-
-    def _is_list(self):
-        """Return bool if this object is a list type."""
-        return len(self._list_properties) == 1
+        selfj = self.to_json(self)
+        valuej = value.to_json(value)
+        ret = selfj == valuej
+        return ret
 
     def __repr__(self):
         """Return the string instead of default repr."""
-        return "{!r}".format(self.__str__())
+        ret = "{!r}".format(self.__str__())
+        return ret
 
-    def __setattr__(self, name, value):
-        """Enforce type, if name is a complex property"""
-        if value is not None and \
-                name != '_initialized' and \
-                self._initialized and \
-                name in self._complex_properties:
-            if not isinstance(value, self._complex_properties[name]):
-                raise IncorrectTypeException(
-                    value,
-                    self._complex_properties[name],
-                    type(value)
-                )
-        super(BaseType, self).__setattr__(name, value)
+    def __setattr__(self, attr, value):
+        """Enforce type for self.attr = value, if attr is a complex property."""
+        if value is not None and attr != "_initialized" and self._isinit:
+            if attr in self._cprops:
+                ctype = self._cprops[attr]
+                if not isinstance(value, ctype):
+                    raise IncorrectTypeException(property=value, expected=ctype, actual=type(value))
+        super(BaseType, self).__setattr__(attr, value)
 
-    def append(self, n):
-        """Allow adding to list.
+    @property
+    def _isinit(self):
+        """Return bool if self._initialized."""
+        ret = getattr(self, "_initialized", False)
+        return ret
 
-        Only supported on types that have a single property
-        that is in list_properties
+    @property
+    def _lprops(self):
+        """Return _list_properties dict."""
+        ret = getattr(self, "_list_properties", {})
+        return ret
 
-        """
-        if len(self._list_properties) == 1:
-            getattr(self, self._list_properties.items()[0][0]).append(n)
+    @property
+    def _cprops(self):
+        """Return _complex_properties dict."""
+        ret = getattr(self, "_complex_properties", {})
+        return ret
+
+    @property
+    def _sprops(self):
+        """Return _simple_properties dict."""
+        ret = getattr(self, "_simple_properties", {})
+        return ret
+
+    @property
+    def _svals(self):
+        """Return a dictionary with all of the key/value pairs of obj that are simple properties."""
+        ret = {k: getattr(self, k) for k in self._sprops.keys()}
+        return ret
+
+    @property
+    def _cvals(self):
+        """Return a dictionary with all of the key/value pairs of obj that are complex properties."""
+        ret = {k: getattr(self, k) for k in self._cprops.keys()}
+        return ret
+
+    @property
+    def _avals(self):
+        """Return a dictionary with all of the key/value pairs of obj that are simple or complex properties."""
+        ret = dict(list(self._svals.items()) + list(self._cvals.items()))
+        return ret
+
+    @property
+    def _new(self):
+        """Return a new instance of self."""
+        return self.__class__()
+
+    @property
+    def _name(self):
+        """Return class name of self."""
+        return self.__class__.__name__
+
+    @property
+    def _sname(self):
+        """Return soap name of self."""
+        return "<{}>".format(self._soap_tag)
+
+    """LIST METHOD."""
+    def _item_types(self, value):
+        """Check that all items in list value are of the right list item type."""
+        if isinstance(value, self.__class__):
+            other = value._list
+        elif isinstance(value, LIST_TYPES):
+            other = value
         else:
-            raise Exception(
-                'Not simply a list type, append not supported'
-            )
+            m = "Supplied value {!r} of type {}, must supply one of types {}"
+            m = m.format(value, type(value), [LIST_TYPES, self.__class__])
+            raise Exception(m)
+
+        for o in other:
+            self._item_type(o, other)
+        return other
+
+    def _item_type(self, value, container=None):
+        """Check that item in value is of the right list item type."""
+        if not isinstance(value, self.list_attrs["type"]):
+            if container:
+                m = "Supplied item {!r} of type {} in {} with {} items, all items must be of type {}"
+                m = m.format(value, type(value), type(container), len(container), self.list_attrs["type"])
+            else:
+                m = "Supplied item {!r} of type {}, item must be of type {}"
+                m = m.format(value, type(value), self.list_attrs["type"])
+            raise Exception(m)
+
+    """LIST METHOD."""
+    @property
+    def _list(self):
+        """Access this objects ACTUAL list object."""
+        ret = getattr(self, self.list_attrs["attr"])
+        return ret
+
+    """LIST METHOD."""
+    @_list.setter
+    def _list(self, value):
+        """Update this objects ACTUAL list object."""
+        ret = setattr(self, self.list_attrs["attr"], value)
+        return ret
+
+    """LIST METHOD."""
+    def search(self, val, attr, op, **kwargs):
+        """Find items in list by attr & op."""
+        margs = mkargs(kwargs, attr=attr, val=val, op=op)
+        margs["newobj"] = newobj = margs.get("newobj", False)
+        margs["slower"] = slower = margs.get("slower", False)
+        margs["smax"] = smax = margs.get("smax", None)
+        margs["smin"] = smin = margs.get("smin", None)
+        margs["snot"] = snot = margs.get("snot", False)
+        margs["serror"] = serror = margs.get("serror", True)
+
+        margs["val"] = val = "{}".format(val).lower() if slower else val
+        margs["voc"] = ["in", "ends", "starts"]
+        margs["vop"] = [x for x in dir(operator) if not x.startswith("_")]
+        margs["istxt"] = "IS NOT" if snot else "IS"
+        margs["me"] = self
+        margs["matches"] = matches = []
+
+        for obj in self._list:
+            aval = rgetattr(obj, attr)
+            aval = "{}".format(aval).lower() if slower else aval
+            if op == "in":
+                smatch = aval in val
+            elif op == "ends":
+                smatch = "{}".format(aval).endswith("{}".format(val))
+            elif op == "starts":
+                smatch = "{}".format(aval).startswith("{}".format(val))
+            else:
+                if hasattr(operator, op):
+                    aop = getattr(operator, op)
+                    smatch = aop(aval, val)
+                else:
+                    m = "{op} is an invalid operator, use any of {voc} or {vop}!".format(**margs)
+                    raise Exception(m)
+
+            smatch = not smatch if snot else smatch
+            if smatch and obj not in matches:
+                matches.append(obj)
+
+        margs["mcnt"] = mcnt = len(matches)
+        m = (
+            "{mcnt} matches found in {me} where attributes {attr!r} {istxt} {op} {val!r}, "
+            "minimum matches: {smin}, maximum matches: {smax}"
+        )
+        m = m.format(**margs)
+
+        if ((smin is not None and mcnt < smin) or (smax is not None and mcnt > smax)) and serror:
+            raise Exception(m)
+
+        if newobj:
+            ret = self._new
+            ret._list = matches
+        elif smax == 1:
+            if mcnt == 1:
+                # return single found object if smax is 1
+                ret = matches[0]
+            else:
+                ret = None
+        # just return all matches as a regular list
+        else:
+            ret = matches
+        return ret
+
+    @property
+    def info(self):
+        """Construct a string that explains self."""
+        ret = []
+        m = "{}".format(self)
+        ret.append(m)
+        j = "\n\t"
+        if self.is_list:
+            m = ", items: {i}".format
+            if self._list:
+                items = ["IDX:{} {}".format(idx, x) for idx, x in enumerate(self._list)]
+                ret.append(m(i=j + j.join(items)))
+            else:
+                ret.append(m(i="none"))
+        else:
+            ret.append(", ALL ATTRIBUTES:")
+            atxt = "{}.{} = {!r}".format
+            setitems = sorted([atxt(self._name, k, v) for k, v in self._avals.items() if v is not None])
+            unsetitems = sorted([atxt(self._name, k, v) for k, v in self._avals.items() if v is None])
+            if setitems:
+                ret.append(j + j.join(setitems))
+            if unsetitems:
+                ret.append(j + j.join(unsetitems))
+        ret = "".join(ret)
+        return ret
+
+    """LIST METHOD."""
+    @property
+    def is_list(self):
+        """Return true/false if self is a list type object."""
+        ret = len(self._lprops) == 1
+        return ret
+
+    """LIST METHOD."""
+    @property
+    def list_attrs(self):
+        """Return this objects list attributes as a dict with attr/type."""
+        if not self.is_list:
+            m = "Not a list type, can not get list attributes from _list_properties: {}"
+            m = m.format(self._lprops)
+            raise Exception(m)
+
+        i = self._lprops.items()[0]
+        a, t = i
+        ret = {"attr": a, "type": t}
+        return ret
+
+    """LIST METHOD."""
+    def append(self, value):
+        """Allow adding to list."""
+        self._item_type(value)
+        self._list.append(value)
+
+    """LIST METHOD."""
+    def remove(self, value, attr=None, **kwargs):
+        """Allow removing from list, optionally by attr."""
+        if attr is None:
+            self._item_type(value)
+            self._list.remove(value)
+        else:
+            self._list = self._filter(value, attr, **kwargs)
+
+    """LIST METHOD."""
+    def sort(self, attr="id", reverse=False):
+        """Sort a list in place."""
+        self._list = sorted(self._list, key=lambda x: getattr(x, attr), reverse=reverse)
 
     def toSOAPElement(self, minimal=False): # noqa
         root = ET.Element(self._soap_tag)
@@ -251,6 +486,7 @@ class BaseType(object):
         return r
 
     def flatten_jsonable(self, val, prefix):
+        """Return a json representation with children represented in . format."""
         result = {}
         if type(val) == list:
             for i, v in enumerate(val):
@@ -269,7 +505,7 @@ class BaseType(object):
         return result
 
     def to_flat_dict_explode_json(self, val, prefix=""):
-        """see if the value is json. If so, flatten it out into a dict"""
+        """If the value is json. If so, flatten it out into a dict."""
         try:
             js = json.loads(val)
             return self.flatten_jsonable(js, prefix)
@@ -277,8 +513,7 @@ class BaseType(object):
             return None
 
     def to_flat_dict(self, prefix='', explode_json_string_values=False):
-        """Convert the object to a dict, flattening any lists or nested types
-        """
+        """Convert the object to a dict, flattening any lists or nested types."""
         result = {}
         prop_start = '{}_'.format(prefix) if prefix else ''
         for p, _ in self._simple_properties.iteritems():
@@ -313,12 +548,14 @@ class BaseType(object):
         return result
 
     def explode_json(self, val):
+        """Load value as a json object."""
         try:
             return json.loads(val)
         except Exception:
             return None
 
     def to_jsonable(self, explode_json_string_values=False, include_type=True):
+        """Turn self into a json representation."""
         result = {}
         if include_type:
             result['_type'] = self._soap_tag
@@ -359,22 +596,18 @@ class BaseType(object):
         of BaseType
 
         """
+        sort_keys = kwargs.get("sort_keys", True)
+        indent = kwargs.get("indent", 2)
         if type(jsonable) == list:
-            return json.dumps(
-                [item.to_jsonable(**kwargs) for item in jsonable],
-                sort_keys=True,
-                indent=2,
-            )
+            ret = [item.to_jsonable(**kwargs) for item in jsonable]
         else:
-            return json.dumps(
-                jsonable.to_jsonable(**kwargs),
-                sort_keys=True,
-                indent=2,
-            )
+            ret = jsonable.to_jsonable(**kwargs)
+        ret = json.dumps(ret, sort_keys=sort_keys, indent=indent)
+        return ret
 
     @classmethod
     def _from_json(cls, jsonable):
-        """Private helper to parse from JSON after type is instantiated"""
+        """Private helper to parse from JSON after type is instantiated."""
         result = cls()
         for p, t in result._simple_properties.iteritems():
             val = jsonable.get(p)
@@ -400,7 +633,8 @@ class BaseType(object):
     def from_jsonable(jsonable):
         """Inverse of to_jsonable, with explode_json_string_values=False.
 
-        This can be used to import objects from serialized JSON. This JSON should come from BaseType.to_jsonable(explode_json_string_values=False, include+type=True)
+        This can be used to import objects from serialized JSON.
+        This JSON should come from BaseType.to_jsonable(explode_json_string_values=False, include+type=True)
 
         Examples
         --------
@@ -426,8 +660,7 @@ class BaseType(object):
 
     @staticmethod
     def write_csv(fd, val, explode_json_string_values=False, **kwargs):
-        """Write 'val' to CSV. val can be a BaseType instance or a list of
-        BaseType
+        """Write 'val' to CSV. val can be a BaseType instance or a list of BaseType.
 
         This does a two-pass, calling to_flat_dict for each object, then
         finding the union of all headers,
@@ -441,13 +674,14 @@ class BaseType(object):
         fd is a file-like object
         """
         def sort_headers(headers, **kwargs):
-            '''returns a list of sorted headers (Column names)
+            """Return a list of sorted headers (Column names).
+
             If kwargs has 'header_sort':
               if header_sort == False, do no sorting
               if header_sort == [] or True, do sorted(headers)
               if header_sort == ['col1', 'col2'], do sorted(headers), then
                 put those headers first in order if they exist
-            '''
+            """
             header_sort = kwargs.get('header_sort', [])
 
             if header_sort is False:
@@ -493,6 +727,4 @@ class BaseType(object):
 
         for base_type in base_type_list:
             row = base_type.to_flat_dict(explode_json_string_values=explode_json_string_values)
-            writer.writerow(
-                [fix_newlines(row.get(col, '')) for col in headers_sorted]
-            )
+            writer.writerow([fix_newlines(row.get(col, '')) for col in headers_sorted])
