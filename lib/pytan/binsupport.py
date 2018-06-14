@@ -1433,6 +1433,15 @@ def setup_deploy_action_argparser(doc):
         help='Expire the action N seconds after it starts, if not supplied '
         'the packages own expire_seconds will be used',
     )
+  
+    arggroup.add_argument(
+        '--action_group',
+        required=False,
+        action='store',
+        default='',
+        dest='action_group',
+        help="Action Group to target this action against. If empty will use the default action group, which is 'No Computers' by default.",
+    )
 
     arggroup.add_argument(
         '--package-help',
