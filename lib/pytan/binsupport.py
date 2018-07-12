@@ -1655,6 +1655,15 @@ def setup_ask_manual_argparser(doc):
         dest='complete_pct',
         help='Percent to consider questions complete',
     )
+    group.add_argument(
+        '--override_timeout_secs',
+        required=False,
+        type=float,
+        action='store',
+        default=pytan.pollers.QuestionPoller.OVERRIDE_TIMEOUT_SECS_DEFAULT,
+        dest='override_timeout_secs',
+        help='Percent to consider questions complete',
+    )
     parser = add_ask_report_argparser(parser=parser)
     return parser
 
