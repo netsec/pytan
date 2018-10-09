@@ -17,7 +17,7 @@
 This is a set of packages and scripts that provide a simple way for interfacing with the [Tanium](https://www.tanium.com/) SOAP API using python or the command line.
 
 ## Versions
- * **2.2.2 (Jul 14 2017)** [Release Link](https://github.com/tanium/pytan/releases/tag/2.2.2)
+ * **2.2.3 (Oct 9 2018)** [Release Link](https://github.com/tanium/pytan/releases/tag/2.2.3)
 
 ## Documentation Links
 
